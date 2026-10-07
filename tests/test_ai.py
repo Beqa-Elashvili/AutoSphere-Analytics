@@ -239,3 +239,26 @@ def test_insights_exist_for_company_and_every_branch(cur):
     assert scalar(cur, "SELECT count(*) FROM analytics.v_ai_insights_latest WHERE scope = 'company'") == 1
     assert scalar(cur, "SELECT count(*) FROM analytics.v_ai_insights_latest WHERE scope = 'branch'") == \
         scalar(cur, "SELECT count(DISTINCT branch_name) FROM analytics.v_feedback")
+
+
+class _Cursor:
+    def __init__(self, row):
+        self.row = row
+
+    def execute(self, sql, params):
+        self.params = params
+
+    def fetchone(self):
+        return self.row
+
+
+def test_insight_reuse_keeps_model_text_and_avoids_paid_calls():
+    from ai.insights import _reusable
+    facts = {"scope": "branch", "scope_value": "AutoSphere Batumi"}
+    gemini_row = ("narrative", "gemini", "gemini-3.5-flash")
+    template_row = ("template text", "template", "template-v1")
+    assert _reusable(_Cursor(gemini_row), facts, "{}", external=False) == gemini_row   # local run keeps paid text
+    assert _reusable(_Cursor(gemini_row), facts, "{}", external=True) == gemini_row    # no new Gemini call
+    assert _reusable(_Cursor(template_row), facts, "{}", external=False) == template_row
+    assert _reusable(_Cursor(template_row), facts, "{}", external=True) is None        # upgrade to model text
+    assert _reusable(_Cursor(None), facts, "{}", external=False) is None               # facts changed

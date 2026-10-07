@@ -61,7 +61,7 @@ flowchart LR
 | 7 | **Analytics** | PostgreSQL `analytics` schema, `analytics/sql/` | Reusable views for KPIs (revenue, margin, AOV, growth, repeat rate, sentiment). |
 | 8 | **Audit** | PostgreSQL `audit` schema | `data_quality_report` (one row per check per run) and the pipeline run log. |
 | 9 | **BI** | PostgreSQL `bi` schema, `powerbi/` | Stable, privacy-filtered views imported by Power BI; DAX measures; eight dashboard pages. |
-| 10 | **Reporting** | `scripts/`, scheduler docs | Scheduled refresh: pipeline, then quality checks, then a KPI summary report. |
+| 10 | **Reporting** | `reporting/`, `scheduling/`, `.github/workflows/` | Scheduled job (Task Scheduler / cron / GitHub Actions): pipeline, then an HTML/Markdown management report with rule-based alerts. Failed refreshes keep the last good data and are flagged ([automated-reporting.md](automated-reporting.md)). |
 
 ## 4. Key design decisions
 

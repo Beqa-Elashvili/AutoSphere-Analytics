@@ -142,16 +142,41 @@ def gemini_insight(client, model: str, facts: dict) -> str:
     return text
 
 
+# An insight is a function of its facts: identical facts -> reuse the stored text (prefer a model-written
+# one) instead of paying for a new narrative or overwriting a model narrative with a template.
+REUSE_SQL = """
+SELECT insight_text, method, model FROM dw.feedback_insights
+WHERE scope = %s AND scope_value = %s AND facts = %s::jsonb
+ORDER BY (method = 'gemini') DESC, generated_at DESC
+LIMIT 1"""
+
+
+def _reusable(cur, f: dict, facts_json: str, external: bool) -> tuple | None:
+    cur.execute(REUSE_SQL, (f["scope"], f["scope_value"], facts_json))
+    row = cur.fetchone()
+    if row and (not external or row[1] == "gemini"):
+        return row
+    return None
+
+
 def generate_insights(engine, settings: Settings, run_id: int | None = None) -> int:
     conn = engine.raw_connection()
     try:
         fact_sets = collect_facts(conn)
+        external = settings.ai_mode == "external"
         client = None
-        if settings.ai_mode == "external":
-            from google import genai
-            client = genai.Client(api_key=settings.ai_api_key)
-        rows = []
+        rows, reused = [], 0
         for f in fact_sets:
+            facts_json = json.dumps(f, ensure_ascii=False)
+            with conn.cursor() as cur:
+                cached = _reusable(cur, f, facts_json, external)
+            if cached:
+                reused += 1
+                rows.append((run_id, f["period"], f["scope"], f["scope_value"], *cached[:1], facts_json, *cached[1:]))
+                continue
+            if external and client is None:
+                from google import genai
+                client = genai.Client(api_key=settings.ai_api_key)
             method, model = "template", "template-v1"
             if client is not None:
                 try:
@@ -161,8 +186,7 @@ def generate_insights(engine, settings: Settings, run_id: int | None = None) -> 
                     text = template_insight(f)
             else:
                 text = template_insight(f)
-            rows.append((run_id, f["period"], f["scope"], f["scope_value"], text,
-                         json.dumps(f, ensure_ascii=False), method, model))
+            rows.append((run_id, f["period"], f["scope"], f["scope_value"], text, facts_json, method, model))
         with conn.cursor() as cur:
             cur.executemany(
                 "INSERT INTO dw.feedback_insights (run_id, period_label, scope, scope_value, insight_text, facts, "
@@ -173,5 +197,6 @@ def generate_insights(engine, settings: Settings, run_id: int | None = None) -> 
         raise
     finally:
         conn.close()
-    log.info("Generated %d feedback insights (%s)", len(rows), rows[0][6] if rows else "-")
+    log.info("Generated %d feedback insights (%d reused: facts unchanged; latest method %s)",
+             len(rows), reused, rows[-1][6] if rows else "-")
     return len(rows)

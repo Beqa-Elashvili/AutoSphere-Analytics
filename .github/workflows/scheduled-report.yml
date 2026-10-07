@@ -1,0 +1,68 @@
+# Daily refresh + management report in the cloud (docs/automated-reporting.md).
+#
+# Needs one repository secret: DATABASE_URL (Settings -> Secrets and variables -> Actions).
+# Without it the job does nothing and succeeds, so forks and fresh clones never fail.
+# AI runs in free local mode; Gemini labels already in the database are kept (cache).
+name: Scheduled report
+
+on:
+  schedule:
+    - cron: "0 3 * * *"        # 03:00 UTC = 07:00 in Tbilisi (UTC+4), every day
+  workflow_dispatch:            # "Run workflow" button for a manual run
+
+concurrency:                    # never two refreshes at the same time
+  group: scheduled-report
+  cancel-in-progress: false
+
+jobs:
+  refresh-and-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DB_SSLMODE: require
+      AI_PROVIDER: ""
+    steps:
+      - name: Check configuration
+        id: config
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::notice::DATABASE_URL secret is not set - skipping the scheduled refresh."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.config.outputs.enabled == 'true'
+
+      - uses: actions/setup-python@v5
+        if: steps.config.outputs.enabled == 'true'
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        if: steps.config.outputs.enabled == 'true'
+        run: pip install -r requirements.txt
+
+      # Raw files are not committed; the generator is deterministic (fixed seed),
+      # so this recreates exactly the same "daily source drop" as on a laptop.
+      - name: Receive source files
+        if: steps.config.outputs.enabled == 'true'
+        run: python scripts/generate_data.py
+
+      - name: Refresh data and publish report
+        if: steps.config.outputs.enabled == 'true'
+        run: python scripts/scheduled_run.py
+
+      - name: Upload report
+        if: always() && steps.config.outputs.enabled == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: management-report-${{ github.run_number }}
+          path: |
+            reports/management/
+            reports/last_run.json
+            logs/
+          retention-days: 30

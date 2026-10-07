@@ -63,7 +63,7 @@ Built incrementally, with each phase reviewed before the next one starts.
 | 7 | Analytical SQL and KPI layer | ✅ |
 | 8 | AI/NLP customer feedback analysis | ✅ |
 | 9 | Power BI data model and dashboard specification | ✅ |
-| 10 | Automated reporting | ⏳ |
+| 10 | Automated reporting | ✅ |
 | 11 | Testing and end-to-end validation | ⏳ |
 | 12 | Final documentation and interview preparation | ⏳ |
 
@@ -96,6 +96,8 @@ python scripts/classify_feedback.py    # AI feedback classification (Georgian / 
 python scripts/evaluate_ai.py          # AI accuracy vs ground truth
 python scripts/run_pipeline.py --ai-provider gemini   # use Gemini (PAID: first run ~0.9M tokens, later only new feedback)
 python scripts/powerbi_reference.py    # values the Power BI report must show (see powerbi/README.md)
+python scripts/scheduled_run.py        # scheduled job: refresh + management report (docs/automated-reporting.md)
+python scripts/generate_report.py      # report only -> reports/management/latest.html
 
 # 6. Run tests
 pytest
@@ -112,6 +114,8 @@ etl/         extract, validation, transform, load, pipeline
 analytics/   analytical SQL and KPI queries
 ai/          feedback sentiment and topic classification
 powerbi/     data model, DAX measures, dashboard specification, theme
+reporting/   automated management report (data, alert rules, HTML/Markdown, scheduled job)
+scheduling/  Windows Task Scheduler wrapper (cron and GitHub Actions: docs/automated-reporting.md)
 scripts/     command-line entry points
 tests/       pytest suite
 docs/        technical and business documentation
