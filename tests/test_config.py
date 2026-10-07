@@ -78,3 +78,22 @@ def test_normalize_url_forces_psycopg2_driver(raw):
 def test_gemini_model_alias_is_accepted():
     s = load_settings({"AI_PROVIDER": "gemini", "GEMINI_API_KEY": "k", "GEMINI_MODEL": "gemini-x"})
     assert s.ai_model == "gemini-x"
+
+
+def test_with_provider_override_uses_configured_key_and_model():
+    s = load_settings({"GEMINI_API_KEY": "k", "GEMINI_MODEL": "gemini-x"})
+    assert s.ai_mode == "local"
+    g = s.with_provider("gemini")
+    assert (g.ai_mode, g.ai_model, g.ai_api_key) == ("external", "gemini-x", "k")
+
+
+def test_with_provider_override_requires_a_key():
+    with pytest.raises(ConfigError):
+        load_settings({}).with_provider("gemini")
+
+
+def test_ai_tuning_values_are_validated():
+    s = load_settings({"AI_BATCH_SIZE": "10", "AI_CONCURRENCY": "2", "AI_MAX_EXTERNAL_PER_RUN": "100"})
+    assert (s.ai_batch_size, s.ai_concurrency, s.ai_max_external_per_run) == (10, 2, 100)
+    with pytest.raises(ConfigError):
+        load_settings({"AI_CONCURRENCY": "0"})

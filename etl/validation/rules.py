@@ -242,6 +242,15 @@ def warehouse_checks() -> list[Check]:
         condition("known_home_branch", "dw.dim_employee", "employee_key <> -1 AND home_branch_name = 'Unknown branch'",
                   WARNING, "home_branch_id", "employees whose home branch is unknown"),
         non_negative("dw.fact_service_orders", "turnaround_hours"),
+        # AI enrichment: every feedback row must carry structured labels with lineage.
+        condition("feedback_classified", "dw.fact_customer_feedback",
+                  "sentiment IS NULL OR topic IS NULL OR language IS NULL OR classification_method IS NULL",
+                  CRITICAL, "sentiment", "every feedback must be classified (language, sentiment, topic, method)"),
+        condition("confidence_in_range", "dw.fact_customer_feedback", "confidence NOT BETWEEN 0 AND 1",
+                  CRITICAL, "confidence", "AI confidence must be within [0, 1]"),
+        condition("fallback_label_share", "dw.feedback_classification", "method = 'rule_based_fallback'",
+                  WARNING, "method", "share of labels where the external model answer was unusable",
+                  max_failed_ratio=0.02),
     ]
     # Logical foreign keys of the star schema, verified set-based (one query per relationship).
     for fact, column, dim in LOGICAL_FOREIGN_KEYS:
@@ -276,6 +285,8 @@ ANALYTICS_VIEWS = [
     "v_category_performance", "v_product_performance", "v_customer_metrics", "v_customer_segments",
     "v_purchase_frequency", "v_service_monthly", "v_service_type_performance",
     "v_service_revenue_by_category", "v_service_turnaround", "v_payment_mix",
+    "v_feedback", "v_sentiment_by_branch", "v_sentiment_by_topic", "v_feedback_monthly",
+    "v_feedback_anomalies", "v_top_complaint_topics", "v_rating_vs_sentiment", "v_ai_classification_quality",
 ]
 
 
@@ -300,6 +311,12 @@ def analytics_checks() -> list[Check]:
         _same("customers_in_metrics", "analytics.v_customer_metrics",
               "SELECT count(*) FROM analytics.v_customer_metrics",
               "SELECT customer_count FROM analytics.v_kpi_summary", "one metrics row per buying customer"),
+        _same("reconcile_feedback_count", "analytics.v_sentiment_by_branch",
+              "SELECT sum(feedback_count) FROM analytics.v_sentiment_by_branch",
+              "SELECT count(*) FROM dw.fact_customer_feedback", "every feedback counted once by branch"),
+        _same("reconcile_feedback_topics", "analytics.v_sentiment_by_topic",
+              "SELECT sum(feedback_count) FROM analytics.v_sentiment_by_topic",
+              "SELECT count(*) FROM dw.fact_customer_feedback", "every feedback counted once by topic"),
         condition("rate_in_range", "analytics.v_kpi_by_year", "repeat_customer_rate_pct NOT BETWEEN 0 AND 100",
                   CRITICAL, "repeat_customer_rate_pct", "repeat customer rate must be a valid percentage"),
     ]

@@ -61,7 +61,7 @@ Built incrementally, with each phase reviewed before the next one starts.
 | 5 | Data cleaning and Data Quality framework | ✅ |
 | 6 | Data Warehouse star schema | ✅ |
 | 7 | Analytical SQL and KPI layer | ✅ |
-| 8 | AI/NLP customer feedback analysis | ⏳ |
+| 8 | AI/NLP customer feedback analysis | ✅ |
 | 9 | Power BI data model and dashboard specification | ⏳ |
 | 10 | Automated reporting | ⏳ |
 | 11 | Testing and end-to-end validation | ⏳ |
@@ -92,6 +92,9 @@ python scripts/run_pipeline.py
 python scripts/run_quality_checks.py   # re-run data-quality checks on demand
 python scripts/demo_scd2.py            # see SCD Type 2 in action (rolled back)
 python scripts/run_analytics.py --all  # answer the 10 business questions with SQL
+python scripts/classify_feedback.py    # AI feedback classification (Georgian / English)
+python scripts/evaluate_ai.py          # AI accuracy vs ground truth
+python scripts/run_pipeline.py --ai-provider gemini   # use Gemini regardless of AI_PROVIDER
 
 # 6. Run tests
 pytest

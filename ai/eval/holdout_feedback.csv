@@ -1,0 +1,41 @@
+feedback_id,feedback_text,true_language,true_sentiment,true_topic
+H01,"The mechanic sorted out the rattling noise on the first visit, really impressed.",en,positive,service_quality
+H02,"Brakes still squeak after you replaced the pads, very disappointing work.",en,negative,service_quality
+H03,"My appointment was at 10 but nobody started on the car until 2pm.",en,negative,waiting_time
+H04,"Got my car back the same afternoon, super quick turnaround.",en,positive,waiting_time
+H05,"Paid almost double what I paid last year for the same maintenance.",en,negative,price
+H06,"Honest pricing, they even told me which repair could wait to save money.",en,positive,price
+H07,"The receptionist ignored me for ten minutes while chatting on the phone.",en,negative,staff
+H08,"Nino at the front desk was incredibly kind and patient with my questions.",en,positive,staff
+H09,"The winter tires I bought last month already have a bulge in the sidewall.",en,negative,product_quality
+H10,"Floor mats fit perfectly and feel very durable.",en,positive,product_quality
+H11,"They had to order the headlight from abroad, I have been without it for a week.",en,negative,availability
+H12,"Could not get the battery I wanted, none left in any branch.",en,negative,availability
+H13,"I am writing to formally complain: my mirror was scratched in your car wash.",en,negative,complaint
+H14,"I expect compensation for the damage to my bumper, this is outrageous.",en,negative,complaint
+H15,"What are your opening hours on public holidays?",en,neutral,other
+H16,"The work was fine, nothing to complain about but nothing exceptional either.",en,neutral,service_quality
+H17,"Prices seem normal, about what other garages charge.",en,neutral,price
+H18,"Friendly team, but the car was ready two days later than promised.",en,negative,waiting_time
+H19,"Quality parts, but the invoice was much more than the quote.",en,negative,price
+H20,"Everything went smoothly from booking to pickup, thank you!",en,positive,service_quality
+H21,"ხელოსანმა ზუსტად იპოვა პრობლემა და პირველივე ვიზიტზე გამოასწორა.",ka,positive,service_quality
+H22,"შეკეთებიდან ორ დღეში იგივე ხარვეზი დაბრუნდა, ძალიან იმედგაცრუებული ვარ.",ka,negative,service_quality
+H23,"ჯავშანი 10 საათზე მქონდა, მანქანას კი მხოლოდ შუადღისას მიხედეს.",ka,negative,waiting_time
+H24,"მანქანა იმავე დღეს დამიბრუნეს, ძალიან ოპერატიულად იმუშავეს.",ka,positive,waiting_time
+H25,"იგივე მომსახურებაში შარშანდელზე თითქმის ორჯერ მეტი გადავიხადე.",ka,negative,price
+H26,"გულწრფელი ფასები აქვთ, ზედმეტ სამუშაოს არ გთავაზობენ.",ka,positive,price
+H27,"რეგისტრატურაში ათი წუთი ყურადღებას არავინ მაქცევდა.",ka,negative,staff
+H28,"თანამშრომელი ძალიან მოთმინებით და კეთილგანწყობით მესაუბრა.",ka,positive,staff
+H29,"გასულ თვეს ნაყიდ საბურავს უკვე გვერდზე ბერი გაუჩნდა.",ka,negative,product_quality
+H30,"ხალიჩები იდეალურად მოერგო და ძალიან გამძლე ჩანს.",ka,positive,product_quality
+H31,"ფარი საზღვარგარეთიდან უნდა ჩამოეტანათ, უკვე ერთი კვირაა უამისოდ დავდივარ.",ka,negative,availability
+H32,"სასურველი აკუმულატორი არცერთ ფილიალში აღარ იყო.",ka,negative,availability
+H33,"ოფიციალურად ვაცხადებ პრეტენზიას: სამრეცხაოში სარკე გამიკაწრეს.",ka,negative,complaint
+H34,"ბამპერის დაზიანებისთვის კომპენსაციას მოვითხოვ, ეს აღმაშფოთებელია.",ka,negative,complaint
+H35,"დღესასწაულებზე რა საათამდე მუშაობთ?",ka,neutral,other
+H36,"სამუშაო ნორმალურად შესრულდა, არც კარგი, არც ცუდი.",ka,neutral,service_quality
+H37,"ფასები ჩვეულებრივია, დაახლოებით სხვა სერვისების მსგავსი.",ka,neutral,price
+H38,"გუნდი თბილია, მაგრამ მანქანა დაპირებულზე ორი დღით გვიან მომცეს.",ka,negative,waiting_time
+H39,"ნაწილები ხარისხიანია, მაგრამ ინვოისი შეთავაზებულ ფასზე ბევრად მეტი იყო.",ka,negative,price
+H40,"ჯავშნიდან მანქანის წაყვანამდე ყველაფერი შეუფერხებლად წავიდა, მადლობა!",ka,positive,service_quality

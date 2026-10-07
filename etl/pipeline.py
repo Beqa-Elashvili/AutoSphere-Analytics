@@ -6,9 +6,11 @@
     4 Write processed files
     5 Load staging + quarantine + post-load DQ checks, all in ONE transaction
                                       (CRITICAL -> rollback: dashboards keep the last good data)
-    6 Build the star schema (ELT in SQL) + warehouse checks, in ONE transaction
+    6 NLP enrichment: classify new/changed feedback (Gemini or local rules), persisted cache
+    7 Build the star schema (ELT in SQL) + warehouse checks, in ONE transaction
                                       (CRITICAL -> rollback: the warehouse keeps the last good build)
-    7 Create/replace analytical KPI views + reconcile every view to the facts
+    8 Create/replace analytical KPI views + reconcile every view to the facts
+    9 AI insights: narrative management insights generated from computed feedback facts
     -> data-quality report is always written to audit.data_quality_report
 """
 from __future__ import annotations
@@ -20,7 +22,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from common.config import PROJECT_ROOT
+from common.config import PROJECT_ROOT, Settings, load_settings
 from common.db import VIEWS_DIR, schema_files
 from common.logging_config import get_logger
 from etl.extract.csv_extractor import SchemaValidationError, extract_all
@@ -50,6 +52,8 @@ class PipelineResult:
     rows_loaded: dict[str, int] = field(default_factory=dict)
     rejected_rows: int = 0
     dq_results: list[CheckResult] = field(default_factory=list)
+    ai: object | None = None          # ai.pipeline.EnrichmentResult
+    insights: int = 0
     duration_s: float = 0.0
 
 
@@ -160,8 +164,9 @@ def _build_and_verify_views(engine, result: PipelineResult, as_of: date) -> None
 
 
 def run_pipeline(raw_dir: Path = RAW_DIR, as_of: date | None = None, load: bool = True,
-                 triggered_by: str = "manual", engine=None) -> PipelineResult:
+                 triggered_by: str = "manual", engine=None, settings: Settings | None = None) -> PipelineResult:
     as_of = as_of or date.today()
+    settings = settings or load_settings()
     result = PipelineResult()
     started = time.time()
 
@@ -196,10 +201,16 @@ def run_pipeline(raw_dir: Path = RAW_DIR, as_of: date | None = None, load: bool 
         if load:
             with _Step(5, "Load staging + quarantine + post-load checks (single transaction)"):
                 _load_and_verify(engine, result, as_of)
-            with _Step(6, "Build star schema + warehouse checks (single transaction)"):
+            with _Step(6, f"NLP enrichment of customer feedback ({settings.ai_mode} mode)"):
+                from ai.pipeline import run_enrichment
+                result.ai = run_enrichment(engine, settings)
+            with _Step(7, "Build star schema + warehouse checks (single transaction)"):
                 _build_and_verify_warehouse(engine, result, as_of)
-            with _Step(7, "Analytical views + KPI reconciliation"):
+            with _Step(8, "Analytical views + KPI reconciliation"):
                 _build_and_verify_views(engine, result, as_of)
+            with _Step(9, "AI insights from feedback facts"):
+                from ai.insights import generate_insights
+                result.insights = generate_insights(engine, settings, result.run_id)
 
         result.status = "success"
     except Exception as exc:

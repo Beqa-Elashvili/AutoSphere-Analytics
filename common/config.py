@@ -7,7 +7,7 @@ names, aliases and defaults. Secrets are never hardcoded or logged.
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Mapping
 from urllib.parse import urlsplit, urlunsplit
@@ -35,6 +35,9 @@ class Settings:
     ai_api_key: str | None
     log_level: str
     random_seed: int
+    ai_batch_size: int = 25            # feedback items per external API request
+    ai_concurrency: int = 4            # parallel external API requests
+    ai_max_external_per_run: int = 20000  # cost guard: max items sent to the provider per run
 
     @property
     def ai_mode(self) -> str:
@@ -44,6 +47,17 @@ class Settings:
     @property
     def has_database(self) -> bool:
         return bool(self.database_url)
+
+    def with_provider(self, provider: str) -> "Settings":
+        """Explicit override (e.g. a CLI flag): use this provider regardless of AI_PROVIDER."""
+        provider = provider.lower()
+        if provider in LOCAL_PROVIDER_ALIASES:
+            return replace(self, ai_provider="local")
+        if provider not in SUPPORTED_AI_PROVIDERS:
+            raise ConfigError(f"Unsupported provider '{provider}'.")
+        if not self.ai_api_key:
+            raise ConfigError(f"Provider '{provider}' requires AI_API_KEY (or GEMINI_API_KEY).")
+        return replace(self, ai_provider=provider, ai_model=self.ai_model or SUPPORTED_AI_PROVIDERS[provider])
 
 
 def _first(env: Mapping[str, str], *names: str) -> str | None:
@@ -78,8 +92,6 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
         if not api_key:
             raise ConfigError(f"AI_PROVIDER='{provider}' requires AI_API_KEY (or GEMINI_API_KEY).")
         model = model or SUPPORTED_AI_PROVIDERS[provider]
-    else:
-        model = None
 
     sslmode = (_first(env, "DB_SSLMODE") or "prefer").lower()
     if sslmode not in VALID_SSLMODES:
@@ -99,7 +111,23 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
         ai_api_key=api_key,
         log_level=(_first(env, "LOG_LEVEL") or "INFO").upper(),
         random_seed=seed,
+        ai_batch_size=_positive_int(env, "AI_BATCH_SIZE", 25),
+        ai_concurrency=_positive_int(env, "AI_CONCURRENCY", 4),
+        ai_max_external_per_run=_positive_int(env, "AI_MAX_EXTERNAL_PER_RUN", 20000),
     )
+
+
+def _positive_int(env: Mapping[str, str], name: str, default: int) -> int:
+    raw = _first(env, name)
+    if raw is None:
+        return default
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        raise ConfigError(f"{name} must be an integer, got '{raw}'.") from exc
+    if value <= 0:
+        raise ConfigError(f"{name} must be positive, got {value}.")
+    return value
 
 
 def mask_url(url: str | None) -> str:
