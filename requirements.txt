@@ -1,0 +1,14 @@
+# Core data stack
+pandas>=2.2,<3.0
+numpy>=1.26
+SQLAlchemy>=2.0,<3.0
+psycopg2-binary>=2.9
+
+# Configuration
+python-dotenv>=1.0
+
+# AI provider SDK (only used when AI_PROVIDER=gemini; local fallback needs nothing)
+google-genai>=1.0
+
+# Testing
+pytest>=8.0

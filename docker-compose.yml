@@ -1,0 +1,25 @@
+# Optional local PostgreSQL for anyone cloning the project without a managed DB.
+# Usage:
+#   docker compose up -d
+#   set DATABASE_URL=postgresql://autosphere:autosphere@localhost:5432/autosphere in .env
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: autosphere-postgres
+    environment:
+      POSTGRES_USER: ${LOCAL_POSTGRES_USER:-autosphere}
+      POSTGRES_PASSWORD: ${LOCAL_POSTGRES_PASSWORD:-autosphere}
+      POSTGRES_DB: ${LOCAL_POSTGRES_DB:-autosphere}
+    ports:
+      - "${LOCAL_POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - autosphere_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${LOCAL_POSTGRES_USER:-autosphere} -d ${LOCAL_POSTGRES_DB:-autosphere}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  autosphere_pgdata:
