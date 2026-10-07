@@ -5,6 +5,10 @@
 -- Constraints here are a second line of defence: if a cleaning bug lets a bad
 -- row through, PostgreSQL rejects the load instead of corrupting the warehouse.
 --
+-- Master-data policy: master rows are never rejected for a bad attribute (that
+-- would cascade and drop valid transactions). The attribute is set to NULL, or an
+-- unresolved reference is kept and flagged, and mapped to an 'Unknown' member in dw.
+--
 -- Referential integrity between staging tables is validated by the DQ framework
 -- (and enforced with real foreign keys in the dw schema), so staging tables can
 -- be truncated and reloaded independently.
@@ -38,7 +42,7 @@ CREATE TABLE IF NOT EXISTS staging.products (
     category_id   TEXT          NOT NULL,
     brand         TEXT          NOT NULL,                 -- fictional brands only
     unit_cost     NUMERIC(12,2) NOT NULL CHECK (unit_cost >= 0),
-    list_price    NUMERIC(12,2) NOT NULL CHECK (list_price > 0),
+    list_price    NUMERIC(12,2)          CHECK (list_price > 0),     -- NULL when source value invalid
     launch_date   DATE          NOT NULL,
     is_active     BOOLEAN       NOT NULL,
     loaded_at     TIMESTAMPTZ   NOT NULL DEFAULT now()
@@ -65,7 +69,7 @@ CREATE TABLE IF NOT EXISTS staging.customers (
     email             TEXT,                               -- synthetic, example.com domain
     phone             TEXT,                               -- synthetic
     city              TEXT NOT NULL,                      -- canonical city or 'Unknown'
-    registration_date DATE NOT NULL,
+    registration_date DATE,                               -- NULL when source date invalid/future
     loyalty_tier      TEXT NOT NULL CHECK (loyalty_tier IN ('standard', 'silver', 'gold', 'platinum')),
     loaded_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
     CHECK (customer_type = 'corporate' OR (first_name IS NOT NULL AND last_name IS NOT NULL)),
@@ -77,11 +81,11 @@ CREATE TABLE IF NOT EXISTS staging.vehicles (
     vin               TEXT     NOT NULL UNIQUE CHECK (length(vin) = 17),
     make              TEXT     NOT NULL,
     model             TEXT     NOT NULL,
-    model_year        SMALLINT NOT NULL CHECK (model_year BETWEEN 1980 AND 2100),
+    model_year        SMALLINT          CHECK (model_year BETWEEN 1980 AND 2100),  -- NULL when unknown
     fuel_type         TEXT     NOT NULL CHECK (fuel_type IN ('petrol', 'diesel', 'hybrid', 'electric', 'lpg')),
     transmission      TEXT     NOT NULL CHECK (transmission IN ('manual', 'automatic')),
     customer_id       TEXT     NOT NULL,                  -- current owner
-    registration_date DATE     NOT NULL,
+    registration_date DATE,
     loaded_at         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

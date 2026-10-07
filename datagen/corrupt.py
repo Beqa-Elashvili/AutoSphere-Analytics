@@ -9,6 +9,7 @@ Expected handling per issue (implemented by the ETL in Phases 4-5):
   reject      -> row is invalid and goes to audit.rejected_rows
   deduplicate -> extra copy is removed, one row is kept
   nullify     -> bad optional value is set to NULL, row is kept
+  flag        -> unresolved reference kept, reported, mapped to an Unknown member in dw
 """
 from __future__ import annotations
 
@@ -33,22 +34,22 @@ ISSUE_CATALOG: dict[str, tuple[str, str]] = {
     "currency_case_variant":   ("Currency code mis-cased or padded", "normalize"),
     "missing_email":           ("Email is empty", "nullify"),
     "invalid_email":           ("Email is malformed", "nullify"),
-    "missing_model_year":      ("Vehicle model year is empty", "reject"),
-    "invalid_date":            ("Unparseable date", "reject"),
-    "future_date":             ("Date after the data extraction date", "reject"),
-    "orphan_customer_id":      ("customer_id does not exist", "reject"),
+    "missing_model_year":      ("Vehicle model year is empty", "nullify"),
+    "invalid_date":            ("Unparseable date", "reject (transactions) / nullify (master data)"),
+    "future_date":             ("Date after the data extraction date", "reject (transactions) / nullify (master data)"),
+    "orphan_customer_id":      ("customer_id does not exist", "reject (transactions) / flag (master data)"),
     "missing_customer_id":     ("customer_id is empty", "reject"),
     "orphan_product_id":       ("product_id does not exist", "reject"),
-    "orphan_branch_id":        ("branch_id does not exist", "reject"),
+    "orphan_branch_id":        ("branch_id does not exist", "reject (transactions) / flag (master data)"),
     "missing_branch_id":       ("branch_id is empty", "reject"),
     "orphan_employee_id":      ("employee_id does not exist", "reject"),
     "orphan_vehicle_id":       ("vehicle_id does not exist", "reject"),
-    "orphan_category_id":      ("category_id does not exist", "reject"),
+    "orphan_category_id":      ("category_id does not exist", "flag"),
     "orphan_service_order_id": ("service_order_id does not exist", "reject"),
     "orphan_source_reference": ("Payment references an unknown invoice / service order", "reject"),
     "negative_quantity":       ("Quantity below zero", "reject"),
     "zero_quantity":           ("Quantity equals zero", "reject"),
-    "negative_amount":         ("Negative money value", "reject"),
+    "negative_amount":         ("Negative money value", "reject (transactions) / nullify (master data)"),
     "zero_amount":             ("Payment amount equals zero", "reject"),
     "non_numeric_amount":      ("Money value is text such as 'N/A'", "reject"),
     "discount_exceeds_value":  ("Discount larger than the line value", "reject"),

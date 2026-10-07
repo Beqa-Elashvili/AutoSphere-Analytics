@@ -60,7 +60,9 @@ Generation runs in two independent stages:
 | **normalize** (fix and keep) | non-ISO date formats (`15.03.2025`, `15/03/2025`, `15-Mar-2025`), mis-cased categories (`In-Store`, `COMPLETED`, `canceled`, `labour`), city variants (`tbilisi`, `Tbilsi`, `თბილისი`), padded or lowercase IDs, decimal commas (`245,00`), currency casing (`gel`), missing city (becomes `Unknown`) |
 | **deduplicate** | exact duplicate rows, the same key with cosmetic differences, the same VIN under two vehicle IDs |
 | **nullify** (keep row, drop bad value) | missing or malformed email, rating outside 1–5 |
-| **reject** (quarantine with reason) | negative or zero quantities, negative, zero or `N/A` amounts, discount above line value, non-GEL currency, orphan customer, product, branch, employee, vehicle, category or service-order IDs, future dates, unparseable dates, service closed before it opened, completed order without a close time, part line without a product, empty feedback text, missing model year |
+| **nullify (master data)** | invalid or future registration date, negative list price, missing model year |
+| **flag (master data)** | unknown category on a product, unknown branch on an employee, unknown owner on a vehicle. The row is kept and reported, and the warehouse maps it to an "Unknown" member |
+| **reject** (transactions, quarantined with reason) | negative or zero quantities, negative, zero or `N/A` amounts, discount above line value, non-GEL currency, orphan customer, product, branch, employee, vehicle or service-order IDs, future dates, unparseable dates, service closed before it opened, completed order without a close time, part line without a product, empty feedback text |
 
 **Date convention:** the source systems use **day-first** dates. `03/04/2025` means 3 April 2025.
 
