@@ -1,4 +1,9 @@
-# Daily refresh + management report in the cloud (docs/automated-reporting.md).
+# Refresh + management report in the cloud (docs/automated-reporting.md).
+#
+# MANUAL ONLY: runs when someone presses "Run workflow" (Actions tab). Nothing runs on its own.
+# To make it daily, add under `on:`
+#   schedule:
+#     - cron: "0 3 * * *"      # 03:00 UTC = 07:00 in Tbilisi (UTC+4)
 #
 # Needs one repository secret: DATABASE_URL (Settings -> Secrets and variables -> Actions).
 # Without it the job does nothing and succeeds, so forks and fresh clones never fail.
@@ -6,9 +11,7 @@
 name: Scheduled report
 
 on:
-  schedule:
-    - cron: "0 3 * * *"        # 03:00 UTC = 07:00 in Tbilisi (UTC+4), every day
-  workflow_dispatch:            # "Run workflow" button for a manual run
+  workflow_dispatch:            # "Run workflow" button
 
 concurrency:                    # never two refreshes at the same time
   group: scheduled-report

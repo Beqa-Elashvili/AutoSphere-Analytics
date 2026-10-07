@@ -43,7 +43,7 @@ Power BI, so the report and the dashboard cannot disagree.
 |-----------|----------|-------|
 | **Windows Task Scheduler** (laptop / office server) | daily 07:00 | see below |
 | **cron** (Linux server) | daily 07:00 | `0 7 * * * cd /opt/autosphere && .venv/bin/python scripts/scheduled_run.py >> logs/cron.log 2>&1` |
-| **GitHub Actions** (cloud, no machine needed) | daily 03:00 UTC (07:00 Tbilisi) + manual button | `.github/workflows/scheduled-report.yml`; needs the repository secret `DATABASE_URL` and does nothing without it |
+| **GitHub Actions** (cloud, no machine needed) | manual button only (a daily `schedule` is one line, see the workflow header) | `.github/workflows/scheduled-report.yml`; needs the repository secret `DATABASE_URL` and does nothing without it |
 
 **Why 07:00?** Source extracts are delivered overnight. The run takes about 2–3 minutes, so
 the report is ready before the working day starts. A Power BI Service scheduled refresh set
