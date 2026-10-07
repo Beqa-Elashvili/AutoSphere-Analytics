@@ -128,7 +128,7 @@ Database options:
 common/      shared config, DB connection, logging
 datagen/     synthetic data generator (clean data + injected DQ issues)
 data/        raw/ (generated CSVs), processed/ (cleaned + rejected rows)
-database/    schemas/ (DDL), views/ (analytics views), migrations/, seeds/
+database/    schemas/ (DDL), warehouse/ (star-schema ELT SQL), views/, migrations/, seeds/
 etl/         extract/, validation/, transform/, load/, pipeline.py
 analytics/   sql/ (analytical queries), kpi_queries/
 ai/          sentiment/, classification/, pipeline.py

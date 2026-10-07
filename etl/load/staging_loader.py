@@ -26,4 +26,7 @@ def load_staging(conn, clean_frames: dict[str, pd.DataFrame]) -> dict[str, int]:
     """Replace the contents of every staging table. Returns rows loaded per table."""
     with conn.cursor() as cur:
         cur.execute("TRUNCATE " + ", ".join(f"staging.{t}" for t in LOAD_ORDER))
-        return {f"staging.{t}": copy_frame(cur, f"staging.{t}", clean_frames[t]) for t in LOAD_ORDER}
+        counts = {f"staging.{t}": copy_frame(cur, f"staging.{t}", clean_frames[t]) for t in LOAD_ORDER}
+        # Fresh statistics so the planner picks good join plans for checks and the warehouse build.
+        cur.execute("ANALYZE " + ", ".join(f"staging.{t}" for t in LOAD_ORDER))
+        return counts

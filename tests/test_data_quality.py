@@ -14,7 +14,7 @@ from etl.pipeline import run_pipeline
 from etl.sources import BUSINESS_KEYS
 from etl.transform.cleaners import CleanResult, clean_all
 from etl.validation.checks import (
-    CRITICAL, INFO, SEVERITIES, WARNING, Check, DataQualityError, critical_failures, foreign_key,
+    BATCH_SEPARATOR, CRITICAL, INFO, SEVERITIES, WARNING, Check, DataQualityError, critical_failures, foreign_key,
     not_null, raise_on_critical, run_checks, unique,
 )
 from etl.validation.rules import (
@@ -26,19 +26,23 @@ AS_OF = date(2026, 10, 7)
 
 # ---------------------------------------------------------------- runner logic (no database)
 class FakeCursor:
-    """Returns a preset violation count per check and a fixed table size."""
+    """Answers a batched check query: preset violation counts per check, fixed table sizes."""
 
     def __init__(self, violations: dict[str, int], total: int = 1000):
-        self.violations, self.total, self._next = violations, total, None
+        self.violations, self.total, self.row = violations, total, None
 
     def execute(self, sql, params=None):
-        if sql.startswith("SELECT count(*) FROM ") and " WHERE " not in sql:
-            self._next = self.total
-        else:
-            self._next = next(v for k, v in self.violations.items() if k in sql)
+        assert sql.startswith("SELECT ")
+        values = []
+        for expr in sql[len("SELECT "):].split(BATCH_SEPARATOR):
+            if expr.startswith("(SELECT count(*) FROM ") and " WHERE " not in expr and "GROUP BY" not in expr:
+                values.append(self.total)
+            else:
+                values.append(next(v for k, v in self.violations.items() if k in expr))
+        self.row = tuple(values)
 
     def fetchone(self):
-        return (self._next,)
+        return self.row
 
 
 def test_any_violation_fails_a_strict_check():

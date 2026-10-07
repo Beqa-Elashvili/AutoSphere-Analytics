@@ -115,16 +115,26 @@ def min_rows(table: str, minimum: int = 1) -> Check:
 
 
 # ---------------------------------------------------------------------- runner
+BATCH_SEPARATOR = ",\n       "
+
+
 def run_checks(cursor, checks: list[Check], as_of: date, stage: str = "post_load") -> list[CheckResult]:
-    """Execute SQL checks with a DB-API cursor (works inside an open transaction)."""
-    totals: dict[str, int] = {}
+    """Execute all SQL checks in ONE round trip (works inside an open transaction).
+
+    Every check returns a single integer, so the batch is one SELECT whose columns are
+    scalar subqueries: one per check plus one row count per table. On a remote database
+    this turns ~2 network round trips per check into a single one.
+    """
+    if not checks:
+        return []
+    tables = list(dict.fromkeys(c.table for c in checks))
+    expressions = [f"({c.violation_sql})" for c in checks] + [f"(SELECT count(*) FROM {t})" for t in tables]
+    cursor.execute("SELECT " + BATCH_SEPARATOR.join(expressions), {"as_of": as_of})
+    values = [int(v) for v in cursor.fetchone()]
+    totals = dict(zip(tables, values[len(checks):]))
+
     results = []
-    for chk in checks:
-        cursor.execute(chk.violation_sql, {"as_of": as_of})
-        failed = int(cursor.fetchone()[0])
-        if chk.table not in totals:
-            cursor.execute(f"SELECT count(*) FROM {chk.table}")
-            totals[chk.table] = int(cursor.fetchone()[0])
+    for chk, failed in zip(checks, values[:len(checks)]):
         total = totals[chk.table]
         ratio = failed / total if total else float(failed > 0)
         status = "PASS" if failed == 0 or ratio <= chk.max_failed_ratio else "FAIL"

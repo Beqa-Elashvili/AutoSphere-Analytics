@@ -59,7 +59,7 @@ Built incrementally, with each phase reviewed before the next one starts.
 | 3 | Synthetic raw data generation | ✅ |
 | 4 | ETL / ELT pipeline | ✅ |
 | 5 | Data cleaning and Data Quality framework | ✅ |
-| 6 | Data Warehouse star schema | ⏳ |
+| 6 | Data Warehouse star schema | ✅ |
 | 7 | Analytical SQL and KPI layer | ⏳ |
 | 8 | AI/NLP customer feedback analysis | ⏳ |
 | 9 | Power BI data model and dashboard specification | ⏳ |
@@ -87,9 +87,10 @@ python scripts/generate_data.py
 python scripts/setup_database.py
 python scripts/check_environment.py
 
-# 5. Run the ETL pipeline (raw CSV -> cleaned -> PostgreSQL staging)
+# 5. Run the pipeline (raw CSV -> clean -> staging -> star schema, with quality gates)
 python scripts/run_pipeline.py
 python scripts/run_quality_checks.py   # re-run data-quality checks on demand
+python scripts/demo_scd2.py            # see SCD Type 2 in action (rolled back)
 
 # 6. Run tests
 pytest

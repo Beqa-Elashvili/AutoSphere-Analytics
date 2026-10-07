@@ -6,9 +6,9 @@
     4 Write processed files
     5 Load staging + quarantine + post-load DQ checks, all in ONE transaction
                                       (CRITICAL -> rollback: dashboards keep the last good data)
+    6 Build the star schema (ELT in SQL) + warehouse checks, in ONE transaction
+                                      (CRITICAL -> rollback: the warehouse keeps the last good build)
     -> data-quality report is always written to audit.data_quality_report
-
-Later phases extend this with warehouse loading and analytical views.
 """
 from __future__ import annotations
 
@@ -24,11 +24,14 @@ from common.logging_config import get_logger
 from etl.extract.csv_extractor import SchemaValidationError, extract_all
 from etl.load.audit import finish_run, start_run, write_rejected_rows
 from etl.load.staging_loader import load_staging
+from etl.load.warehouse_loader import build_warehouse
 from etl.sources import SOURCE_COLUMNS
 from etl.transform.cleaners import CleanResult, clean_all
 from etl.validation.checks import CheckResult, raise_on_critical, run_checks
 from etl.validation.report import summarize, write_report
-from etl.validation.rules import post_load_checks, schema_contract_result, source_stage_results
+from etl.validation.rules import (
+    post_load_checks, schema_contract_result, source_stage_results, warehouse_checks,
+)
 
 log = get_logger("pipeline")
 PIPELINE_NAME = "autosphere_etl"
@@ -114,6 +117,27 @@ def _load_and_verify(engine, result: PipelineResult, as_of: date) -> None:
              f"{sum(result.rows_loaded.values()):,}", f"{result.rejected_rows:,}")
 
 
+def _build_and_verify_warehouse(engine, result: PipelineResult, as_of: date) -> None:
+    """Build dimensions and facts, then reconcile against staging; roll back on CRITICAL."""
+    conn = engine.raw_connection()
+    try:
+        counts = build_warehouse(conn, as_of)
+        with conn.cursor() as cur:
+            dw = run_checks(cur, warehouse_checks(), as_of, stage="post_load")
+        result.dq_results += dw
+        log.info("Warehouse checks: %s", summarize(dw))
+        raise_on_critical(dw)
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        log.error("Warehouse build rolled back - dw still holds the previous successful build")
+        raise
+    finally:
+        conn.close()
+    result.rows_loaded.update(counts)
+    log.info("Warehouse: %s", ", ".join(f"{t.split('.')[1]}={n:,}" for t, n in counts.items()))
+
+
 def run_pipeline(raw_dir: Path = RAW_DIR, as_of: date | None = None, load: bool = True,
                  triggered_by: str = "manual", engine=None) -> PipelineResult:
     as_of = as_of or date.today()
@@ -151,6 +175,8 @@ def run_pipeline(raw_dir: Path = RAW_DIR, as_of: date | None = None, load: bool 
         if load:
             with _Step(5, "Load staging + quarantine + post-load checks (single transaction)"):
                 _load_and_verify(engine, result, as_of)
+            with _Step(6, "Build star schema + warehouse checks (single transaction)"):
+                _build_and_verify_warehouse(engine, result, as_of)
 
         result.status = "success"
     except Exception as exc:

@@ -176,3 +176,92 @@ def schema_contract_result(table: str, error: str | None) -> CheckResult:
         return CheckResult("schema_contract", table, "source", "FAIL", CRITICAL, 0, None, error)
     return CheckResult("schema_contract", table, "source", "PASS", INFO, 0, None,
                        "file present with all required columns")
+
+
+# ====================================================================== warehouse
+def _same(name: str, table: str, left_sql: str, right_sql: str, description: str, tolerance: float = 0.0) -> Check:
+    sql = f"SELECT CASE WHEN abs(({left_sql}) - ({right_sql})) <= {tolerance} THEN 0 ELSE 1 END"
+    return Check(name, table, CRITICAL, sql, None, description)
+
+
+def warehouse_checks() -> list[Check]:
+    """Run after the star schema is built: reconciliation, SCD2 integrity, unknown-member usage."""
+    checks: list[Check] = []
+    row_pairs = [("sales", "fact_sales"), ("service_orders", "fact_service_orders"),
+                 ("service_items", "fact_service_items"), ("payments", "fact_payments"),
+                 ("customer_feedback", "fact_customer_feedback")]
+    for src, fact in row_pairs:
+        checks.append(_same("reconcile_row_count", f"dw.{fact}", f"SELECT count(*) FROM staging.{src}",
+                            f"SELECT count(*) FROM dw.{fact}", f"row count must equal staging.{src}"))
+    checks += [
+        _same("reconcile_net_amount", "dw.fact_sales",
+              "SELECT COALESCE(sum(ROUND(quantity * unit_price - discount_amount, 2)), 0) FROM staging.sales",
+              "SELECT COALESCE(sum(net_amount), 0) FROM dw.fact_sales",
+              "sales net amount must equal staging", tolerance=0.01),
+        _same("reconcile_service_revenue", "dw.fact_service_items",
+              "SELECT COALESCE(sum(ROUND(quantity * unit_price, 2)), 0) FROM staging.service_items",
+              "SELECT COALESCE(sum(revenue_amount), 0) FROM dw.fact_service_items",
+              "service line revenue (rounded per line, like an invoice) must equal staging", tolerance=0.01),
+        _same("orders_match_items", "dw.fact_service_orders",
+              "SELECT COALESCE(sum(total_revenue), 0) FROM dw.fact_service_orders",
+              "SELECT COALESCE(sum(revenue_amount), 0) FROM dw.fact_service_items",
+              "order-level revenue must equal the sum of its lines", tolerance=0.01),
+        _same("reconcile_payment_amount", "dw.fact_payments",
+              "SELECT COALESCE(sum(amount), 0) FROM staging.payments",
+              "SELECT COALESCE(sum(amount), 0) FROM dw.fact_payments",
+              "payment amounts must equal staging", tolerance=0.01),
+        # SCD Type 2 integrity
+        Check("one_current_version", "dw.dim_customer", CRITICAL,
+              "SELECT count(*) FROM (SELECT customer_id FROM dw.dim_customer WHERE is_current "
+              "GROUP BY customer_id HAVING count(*) > 1) d",
+              "customer_id", "exactly one current version per customer"),
+        condition("every_customer_has_current_version", "staging.customers",
+                  "NOT EXISTS (SELECT 1 FROM dw.dim_customer d WHERE d.customer_id = staging.customers.customer_id "
+                  "AND d.is_current)", CRITICAL, "customer_id", "every customer must have a current version"),
+        Check("no_overlapping_versions", "dw.dim_customer", CRITICAL,
+              "SELECT count(*) FROM dw.dim_customer a JOIN dw.dim_customer b "
+              "ON a.customer_id = b.customer_id AND a.customer_key < b.customer_key "
+              "AND a.valid_from <= b.valid_to AND b.valid_from <= a.valid_to",
+              "valid_from", "SCD2 validity windows must not overlap"),
+        # date dimension must be contiguous (required for time intelligence in Power BI)
+        Check("contiguous_dates", "dw.dim_date", CRITICAL,
+              "SELECT CASE WHEN count(*) = max(full_date) - min(full_date) + 1 THEN 0 ELSE 1 END FROM dw.dim_date",
+              "full_date", "date dimension must have no gaps"),
+        # unknown-member usage: transactions were validated, so -1 means a load bug (CRITICAL);
+        # master-data gaps kept by policy show up as WARNING.
+        condition("known_customer", "dw.fact_sales", "customer_key = -1", CRITICAL, "customer_key",
+                  "sales must resolve to a known customer version"),
+        condition("known_product", "dw.fact_sales", "product_key = -1", CRITICAL, "product_key",
+                  "sales must resolve to a known product"),
+        condition("known_category", "dw.fact_sales", "category_key = -1", WARNING, "category_key",
+                  "sales of products with an unknown category"),
+        condition("known_vehicle", "dw.fact_service_orders", "vehicle_key = -1", CRITICAL, "vehicle_key",
+                  "service orders must resolve to a known vehicle"),
+        condition("known_branch", "dw.fact_payments", "branch_key = -1", CRITICAL, "branch_key",
+                  "payments must inherit a branch from their invoice / service order"),
+        condition("known_home_branch", "dw.dim_employee", "employee_key <> -1 AND home_branch_name = 'Unknown branch'",
+                  WARNING, "home_branch_id", "employees whose home branch is unknown"),
+        non_negative("dw.fact_service_orders", "turnaround_hours"),
+    ]
+    # Logical foreign keys of the star schema, verified set-based (one query per relationship).
+    for fact, column, dim in LOGICAL_FOREIGN_KEYS:
+        checks.append(foreign_key(f"dw.{fact}", column, f"dw.{dim}"))
+    for column in ("opened_date_key", "closed_date_key"):
+        checks.append(foreign_key("dw.fact_service_orders", column, "dw.dim_date", "date_key"))
+    return checks
+
+
+LOGICAL_FOREIGN_KEYS = [
+    ("fact_sales", "date_key", "dim_date"), ("fact_sales", "customer_key", "dim_customer"),
+    ("fact_sales", "product_key", "dim_product"), ("fact_sales", "category_key", "dim_category"),
+    ("fact_sales", "branch_key", "dim_branch"), ("fact_sales", "employee_key", "dim_employee"),
+    ("fact_service_orders", "customer_key", "dim_customer"), ("fact_service_orders", "vehicle_key", "dim_vehicle"),
+    ("fact_service_orders", "branch_key", "dim_branch"), ("fact_service_orders", "employee_key", "dim_employee"),
+    ("fact_service_items", "service_order_id", "fact_service_orders"),
+    ("fact_service_items", "product_key", "dim_product"), ("fact_service_items", "category_key", "dim_category"),
+    ("fact_service_items", "branch_key", "dim_branch"), ("fact_service_items", "date_key", "dim_date"),
+    ("fact_payments", "date_key", "dim_date"), ("fact_payments", "customer_key", "dim_customer"),
+    ("fact_payments", "branch_key", "dim_branch"),
+    ("fact_customer_feedback", "date_key", "dim_date"), ("fact_customer_feedback", "customer_key", "dim_customer"),
+    ("fact_customer_feedback", "branch_key", "dim_branch"),
+]

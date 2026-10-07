@@ -1,4 +1,4 @@
-"""Run the post-load data-quality checks against the data currently in PostgreSQL.
+"""Run the staging and warehouse data-quality checks against the data in PostgreSQL.
 
 Usage:
     python scripts/run_quality_checks.py            # run checks, store report, show findings
@@ -21,7 +21,7 @@ from common.db import get_engine  # noqa: E402
 from etl.load.audit import finish_run, start_run  # noqa: E402
 from etl.validation.checks import critical_failures, run_checks  # noqa: E402
 from etl.validation.report import format_table, summarize, write_report  # noqa: E402
-from etl.validation.rules import post_load_checks  # noqa: E402
+from etl.validation.rules import post_load_checks, warehouse_checks  # noqa: E402
 
 
 def main() -> int:
@@ -36,7 +36,7 @@ def main() -> int:
     try:
         with conn.cursor() as cur:
             cur.execute("SET TRANSACTION READ ONLY")   # scoped to this transaction only
-            results = run_checks(cur, post_load_checks(), args.as_of)
+            results = run_checks(cur, post_load_checks() + warehouse_checks(), args.as_of)
     finally:
         conn.rollback()
         conn.close()
