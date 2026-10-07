@@ -112,7 +112,7 @@ All configuration comes from environment variables, resolved in
 | `DATABASE_URL` (alias `POSTGRESQL_URL`) | PostgreSQL connection | required |
 | `DB_SSLMODE` | SSL mode; managed cloud databases need `require` | `prefer` |
 | `AI_PROVIDER` | `gemini`, or empty for local | empty, meaning local |
-| `AI_MODEL` | Model name for the provider | provider default |
+| `AI_MODEL` (alias `GEMINI_MODEL`) | Model name for the provider | `gemini-3.5-flash` |
 | `AI_API_KEY` (alias `GEMINI_API_KEY`) | Provider key | - |
 | `RANDOM_SEED` | Synthetic data seed | `42` |
 | `LOG_LEVEL` | Logging verbosity | `INFO` |

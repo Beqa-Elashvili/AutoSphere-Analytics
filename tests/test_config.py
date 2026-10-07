@@ -73,3 +73,8 @@ def test_mask_url_handles_missing_values():
 @pytest.mark.parametrize("raw", ["postgres://u:p@h/d", "postgresql://u:p@h/d"])
 def test_normalize_url_forces_psycopg2_driver(raw):
     assert normalize_url(raw) == "postgresql+psycopg2://u:p@h/d"
+
+
+def test_gemini_model_alias_is_accepted():
+    s = load_settings({"AI_PROVIDER": "gemini", "GEMINI_API_KEY": "k", "GEMINI_MODEL": "gemini-x"})
+    assert s.ai_model == "gemini-x"

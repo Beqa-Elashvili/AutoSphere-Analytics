@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 # Provider -> default model. Empty AI_PROVIDER (or "local") means offline mode.
-SUPPORTED_AI_PROVIDERS: dict[str, str] = {"gemini": "gemini-2.5-flash"}
+SUPPORTED_AI_PROVIDERS: dict[str, str] = {"gemini": "gemini-3.5-flash"}
 LOCAL_PROVIDER_ALIASES = {"", "local", "none", "rule_based"}
 VALID_SSLMODES = {"disable", "allow", "prefer", "require", "verify-ca", "verify-full"}
 
@@ -71,7 +71,7 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
         )
 
     api_key = _first(env, "AI_API_KEY", "GEMINI_API_KEY")
-    model = _first(env, "AI_MODEL")
+    model = _first(env, "AI_MODEL", "GEMINI_MODEL")
     if provider != "local":
         # An explicitly requested provider without a key is a misconfiguration;
         # silently falling back would hide the problem.

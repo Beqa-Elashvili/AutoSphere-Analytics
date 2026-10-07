@@ -1,0 +1,34 @@
+# =============================================================================
+# AutoSphere Analytics - environment configuration
+# Copy to `.env` and fill in values. `.env` is git-ignored: never commit it.
+# =============================================================================
+
+# --- Database ----------------------------------------------------------------
+# Any PostgreSQL 14+ connection URL. DATABASE_URL takes precedence;
+# POSTGRESQL_URL is accepted as an alias.
+#   External/managed:  postgresql://user:password@host:5432/dbname
+#   Local Docker:      postgresql://autosphere:autosphere@localhost:5432/autosphere
+DATABASE_URL=
+# SSL mode passed to psycopg2: disable | prefer | require | verify-full
+# Managed cloud databases usually need `require`. Local Docker works with `prefer`.
+DB_SSLMODE=prefer
+
+# --- Local Docker PostgreSQL (only used by docker-compose.yml) ---------------
+LOCAL_POSTGRES_USER=autosphere
+LOCAL_POSTGRES_PASSWORD=autosphere
+LOCAL_POSTGRES_DB=autosphere
+LOCAL_POSTGRES_PORT=5432
+
+# --- AI / NLP (customer feedback classification) -----------------------------
+# Leave AI_PROVIDER empty (or set to `local`) to use the deterministic,
+# offline rule-based classifier. No API key or network access is needed.
+# Supported external providers: gemini
+AI_PROVIDER=
+AI_MODEL=
+# AI_API_KEY takes precedence; GEMINI_API_KEY is accepted as an alias.
+AI_API_KEY=
+
+# --- General -------------------------------------------------------------------
+LOG_LEVEL=INFO
+# Seed for synthetic data generation (same seed = identical datasets).
+RANDOM_SEED=42
