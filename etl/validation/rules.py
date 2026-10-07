@@ -265,3 +265,42 @@ LOGICAL_FOREIGN_KEYS = [
     ("fact_customer_feedback", "date_key", "dim_date"), ("fact_customer_feedback", "customer_key", "dim_customer"),
     ("fact_customer_feedback", "branch_key", "dim_branch"),
 ]
+
+
+# ====================================================================== analytics layer
+RECOGNIZED_REVENUE = "SELECT COALESCE(sum(net_amount), 0) FROM dw.fact_sales WHERE is_revenue_recognized"
+SERVICE_REVENUE = "SELECT COALESCE(sum(total_revenue), 0) FROM dw.fact_service_orders WHERE is_completed"
+ANALYTICS_VIEWS = [
+    "v_data_period", "v_sales", "v_service", "v_kpi_summary", "v_kpi_by_year", "v_kpi_ytd",
+    "v_revenue_monthly", "v_branch_monthly", "v_branch_performance", "v_branch_growth", "v_city_revenue",
+    "v_category_performance", "v_product_performance", "v_customer_metrics", "v_customer_segments",
+    "v_purchase_frequency", "v_service_monthly", "v_service_type_performance",
+    "v_service_revenue_by_category", "v_service_turnaround", "v_payment_mix",
+]
+
+
+def analytics_checks() -> list[Check]:
+    """Every KPI view must reconcile to the facts: one definition, one number."""
+    checks = [min_rows(f"analytics.{v}") for v in ANALYTICS_VIEWS]
+    for view, column in [("v_kpi_summary", "revenue"), ("v_revenue_monthly", "revenue"),
+                         ("v_branch_performance", "sales_revenue"), ("v_city_revenue", "revenue"),
+                         ("v_category_performance", "revenue"), ("v_product_performance", "revenue"),
+                         ("v_customer_metrics", "revenue"), ("v_kpi_by_year", "revenue")]:
+        checks.append(_same(f"reconcile_{column}", f"analytics.{view}", f"SELECT sum({column}) FROM analytics.{view}",
+                            RECOGNIZED_REVENUE, "must equal recognized revenue in dw.fact_sales", tolerance=0.01))
+    for view, column in [("v_kpi_summary", "service_revenue"), ("v_service_monthly", "service_revenue"),
+                         ("v_branch_performance", "service_revenue"),
+                         ("v_service_type_performance", "service_revenue")]:
+        checks.append(_same(f"reconcile_{column}", f"analytics.{view}", f"SELECT sum({column}) FROM analytics.{view}",
+                            SERVICE_REVENUE, "must equal completed service revenue", tolerance=0.01))
+    checks += [
+        _same("reconcile_orders", "analytics.v_kpi_summary", "SELECT orders FROM analytics.v_kpi_summary",
+              "SELECT count(DISTINCT invoice_number) FROM dw.fact_sales WHERE is_revenue_recognized",
+              "orders must equal distinct completed invoices"),
+        _same("customers_in_metrics", "analytics.v_customer_metrics",
+              "SELECT count(*) FROM analytics.v_customer_metrics",
+              "SELECT customer_count FROM analytics.v_kpi_summary", "one metrics row per buying customer"),
+        condition("rate_in_range", "analytics.v_kpi_by_year", "repeat_customer_rate_pct NOT BETWEEN 0 AND 100",
+                  CRITICAL, "repeat_customer_rate_pct", "repeat customer rate must be a valid percentage"),
+    ]
+    return checks

@@ -9,6 +9,7 @@ from sqlalchemy.engine import Engine
 from common.config import PROJECT_ROOT, ConfigError, Settings, load_settings
 
 SCHEMA_DIR = PROJECT_ROOT / "database" / "schemas"
+VIEWS_DIR = PROJECT_ROOT / "database" / "views"
 # Schemas owned by this project. Only these are ever dropped by a reset.
 PROJECT_SCHEMAS = ("staging", "dw", "analytics", "audit")
 
@@ -61,6 +62,11 @@ def apply_schema(engine: Engine, directory: Path = SCHEMA_DIR) -> list[str]:
         run_sql_file(engine, path)
         applied.append(path.name)
     return applied
+
+
+def apply_views(engine: Engine) -> list[str]:
+    """Create or replace the analytics views (database/views, filename order)."""
+    return apply_schema(engine, VIEWS_DIR)
 
 
 def drop_project_schemas(engine: Engine) -> None:

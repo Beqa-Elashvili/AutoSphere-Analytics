@@ -60,7 +60,7 @@ Built incrementally, with each phase reviewed before the next one starts.
 | 4 | ETL / ELT pipeline | ✅ |
 | 5 | Data cleaning and Data Quality framework | ✅ |
 | 6 | Data Warehouse star schema | ✅ |
-| 7 | Analytical SQL and KPI layer | ⏳ |
+| 7 | Analytical SQL and KPI layer | ✅ |
 | 8 | AI/NLP customer feedback analysis | ⏳ |
 | 9 | Power BI data model and dashboard specification | ⏳ |
 | 10 | Automated reporting | ⏳ |
@@ -87,10 +87,11 @@ python scripts/generate_data.py
 python scripts/setup_database.py
 python scripts/check_environment.py
 
-# 5. Run the pipeline (raw CSV -> clean -> staging -> star schema, with quality gates)
+# 5. Run the pipeline (raw CSV -> clean -> staging -> star schema -> KPI views, with quality gates)
 python scripts/run_pipeline.py
 python scripts/run_quality_checks.py   # re-run data-quality checks on demand
 python scripts/demo_scd2.py            # see SCD Type 2 in action (rolled back)
+python scripts/run_analytics.py --all  # answer the 10 business questions with SQL
 
 # 6. Run tests
 pytest

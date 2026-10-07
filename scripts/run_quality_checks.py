@@ -21,7 +21,7 @@ from common.db import get_engine  # noqa: E402
 from etl.load.audit import finish_run, start_run  # noqa: E402
 from etl.validation.checks import critical_failures, run_checks  # noqa: E402
 from etl.validation.report import format_table, summarize, write_report  # noqa: E402
-from etl.validation.rules import post_load_checks, warehouse_checks  # noqa: E402
+from etl.validation.rules import analytics_checks, post_load_checks, warehouse_checks  # noqa: E402
 
 
 def main() -> int:
@@ -37,8 +37,10 @@ def main() -> int:
         with conn.cursor() as cur:
             cur.execute("SET TRANSACTION READ ONLY")   # scoped to this transaction only
             results = run_checks(cur, post_load_checks() + warehouse_checks(), args.as_of)
+            results += run_checks(cur, analytics_checks(), args.as_of, chunk_size=6)
     finally:
-        conn.rollback()
+        if not conn.closed:
+            conn.rollback()
         conn.close()
 
     failures = critical_failures(results)

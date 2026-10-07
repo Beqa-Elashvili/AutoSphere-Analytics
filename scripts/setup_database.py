@@ -15,7 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from common.config import load_settings, mask_url  # noqa: E402
-from common.db import PROJECT_SCHEMAS, apply_schema, drop_project_schemas, get_engine  # noqa: E402
+from common.db import PROJECT_SCHEMAS, apply_schema, apply_views, drop_project_schemas, get_engine  # noqa: E402
 from common.logging_config import get_logger  # noqa: E402
 
 log = get_logger("setup_database")
@@ -41,6 +41,8 @@ def main() -> int:
 
     for name in apply_schema(engine):
         log.info("Applied %s", name)
+    for name in apply_views(engine):
+        log.info("Applied views/%s", name)
     log.info("Database schema is up to date.")
     return 0
 

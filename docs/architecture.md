@@ -130,7 +130,7 @@ datagen/     synthetic data generator (clean data + injected DQ issues)
 data/        raw/ (generated CSVs), processed/ (cleaned + rejected rows)
 database/    schemas/ (DDL), warehouse/ (star-schema ELT SQL), views/, migrations/, seeds/
 etl/         extract/, validation/, transform/, load/, pipeline.py
-analytics/   sql/ (analytical queries), kpi_queries/
+analytics/   sql/ (10 business questions), kpi_queries/ (independent KPI implementations)
 ai/          sentiment/, classification/, pipeline.py
 powerbi/     data model, DAX measures, dashboard spec
 scripts/     CLI entry points (generate data, setup DB, run pipeline, checks)

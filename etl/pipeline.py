@@ -8,6 +8,7 @@
                                       (CRITICAL -> rollback: dashboards keep the last good data)
     6 Build the star schema (ELT in SQL) + warehouse checks, in ONE transaction
                                       (CRITICAL -> rollback: the warehouse keeps the last good build)
+    7 Create/replace analytical KPI views + reconcile every view to the facts
     -> data-quality report is always written to audit.data_quality_report
 """
 from __future__ import annotations
@@ -20,6 +21,7 @@ from pathlib import Path
 import pandas as pd
 
 from common.config import PROJECT_ROOT
+from common.db import VIEWS_DIR, schema_files
 from common.logging_config import get_logger
 from etl.extract.csv_extractor import SchemaValidationError, extract_all
 from etl.load.audit import finish_run, start_run, write_rejected_rows
@@ -30,7 +32,7 @@ from etl.transform.cleaners import CleanResult, clean_all
 from etl.validation.checks import CheckResult, raise_on_critical, run_checks
 from etl.validation.report import summarize, write_report
 from etl.validation.rules import (
-    post_load_checks, schema_contract_result, source_stage_results, warehouse_checks,
+    analytics_checks, post_load_checks, schema_contract_result, source_stage_results, warehouse_checks,
 )
 
 log = get_logger("pipeline")
@@ -138,6 +140,25 @@ def _build_and_verify_warehouse(engine, result: PipelineResult, as_of: date) -> 
     log.info("Warehouse: %s", ", ".join(f"{t.split('.')[1]}={n:,}" for t, n in counts.items()))
 
 
+def _build_and_verify_views(engine, result: PipelineResult, as_of: date) -> None:
+    """Create or replace the analytics views and prove they reconcile to the facts."""
+    conn = engine.raw_connection()
+    try:
+        with conn.cursor() as cur:
+            for path in schema_files(VIEWS_DIR):
+                cur.execute(path.read_text(encoding="utf-8"))
+            checks = run_checks(cur, analytics_checks(), as_of, stage="post_load", chunk_size=6)
+        result.dq_results += checks
+        log.info("Analytics checks: %s", summarize(checks))
+        raise_on_critical(checks)
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
 def run_pipeline(raw_dir: Path = RAW_DIR, as_of: date | None = None, load: bool = True,
                  triggered_by: str = "manual", engine=None) -> PipelineResult:
     as_of = as_of or date.today()
@@ -177,6 +198,8 @@ def run_pipeline(raw_dir: Path = RAW_DIR, as_of: date | None = None, load: bool 
                 _load_and_verify(engine, result, as_of)
             with _Step(6, "Build star schema + warehouse checks (single transaction)"):
                 _build_and_verify_warehouse(engine, result, as_of)
+            with _Step(7, "Analytical views + KPI reconciliation"):
+                _build_and_verify_views(engine, result, as_of)
 
         result.status = "success"
     except Exception as exc:
