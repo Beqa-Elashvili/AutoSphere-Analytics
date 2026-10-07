@@ -18,6 +18,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.stdout.reconfigure(encoding="utf-8")  # Georgian text on Windows consoles
 
 from etl.pipeline import RAW_DIR, run_pipeline  # noqa: E402
+from etl.validation.checks import DataQualityError  # noqa: E402
+from etl.validation.report import format_table, summarize  # noqa: E402
 
 
 def main() -> int:
@@ -31,6 +33,9 @@ def main() -> int:
     try:
         result = run_pipeline(raw_dir=args.raw_dir, as_of=args.as_of, load=not args.dry_run,
                               triggered_by=args.triggered_by)
+    except DataQualityError as exc:
+        print(f"\nPIPELINE STOPPED BY DATA QUALITY GATE\n{format_table(exc.failures)}")
+        return 1
     except Exception:
         return 1
 
@@ -38,6 +43,9 @@ def main() -> int:
     for table, r in result.results.items():
         top = ", ".join(f"{k}={v}" for k, v in list(r.rejected_by_reason.items())[:3])
         print(f"{table:20s} {result.raw_rows[table]:7d} {len(r.clean):7d} {len(r.rejected):8d}  {top}")
+    print(f"\nData quality: {summarize(result.dq_results)}")
+    print("Findings (WARNING / CRITICAL):")
+    print(format_table([r for r in result.dq_results if r.severity != "INFO"], only_failures=True))
     if result.run_id:
         print(f"\nrun_id={result.run_id}  status={result.status}  duration={result.duration_s:.1f}s")
     return 0

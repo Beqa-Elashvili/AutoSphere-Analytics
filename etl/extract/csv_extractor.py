@@ -12,6 +12,10 @@ from etl.sources import SOURCE_COLUMNS
 class SchemaValidationError(Exception):
     """A source file is missing, empty or lacks required columns (pipeline must stop)."""
 
+    def __init__(self, table: str, message: str):
+        self.table = table
+        super().__init__(f"{table}: {message}")
+
 
 @dataclass
 class ExtractResult:
@@ -34,9 +38,9 @@ def validate_columns(table: str, df: pd.DataFrame) -> tuple[pd.DataFrame, list[s
     df = df.set_axis(actual, axis=1)
     missing = [c for c in expected if c not in actual]
     if missing:
-        raise SchemaValidationError(f"{table}: missing required column(s) {missing}")
+        raise SchemaValidationError(table, f"missing required column(s) {missing}")
     if df.empty:
-        raise SchemaValidationError(f"{table}: file contains no rows")
+        raise SchemaValidationError(table, "file contains no rows")
     warnings = []
     extra = [c for c in actual if c not in expected]
     if extra:
@@ -49,7 +53,7 @@ def extract_all(raw_dir: Path) -> ExtractResult:
     for table in SOURCE_COLUMNS:
         path = raw_dir / f"{table}.csv"
         if not path.exists():
-            raise SchemaValidationError(f"{table}: source file not found at {path}")
+            raise SchemaValidationError(table, f"source file not found at {path}")
         df, w = validate_columns(table, read_raw_csv(path))
         data[table] = df
         warnings.extend(w)

@@ -58,7 +58,7 @@ Built incrementally, with each phase reviewed before the next one starts.
 | 2 | PostgreSQL setup and database schema | ✅ |
 | 3 | Synthetic raw data generation | ✅ |
 | 4 | ETL / ELT pipeline | ✅ |
-| 5 | Data cleaning and Data Quality framework | ⏳ |
+| 5 | Data cleaning and Data Quality framework | ✅ |
 | 6 | Data Warehouse star schema | ⏳ |
 | 7 | Analytical SQL and KPI layer | ⏳ |
 | 8 | AI/NLP customer feedback analysis | ⏳ |
@@ -89,6 +89,7 @@ python scripts/check_environment.py
 
 # 5. Run the ETL pipeline (raw CSV -> cleaned -> PostgreSQL staging)
 python scripts/run_pipeline.py
+python scripts/run_quality_checks.py   # re-run data-quality checks on demand
 
 # 6. Run tests
 pytest
