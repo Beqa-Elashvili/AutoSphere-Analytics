@@ -55,7 +55,7 @@ Built incrementally, with each phase reviewed before the next one starts.
 | Phase | Scope | Status |
 |-------|-------|--------|
 | 1 | Architecture and repository setup | ✅ |
-| 2 | PostgreSQL setup and database schema | ⏳ |
+| 2 | PostgreSQL setup and database schema | ✅ |
 | 3 | Synthetic raw data generation | ⏳ |
 | 4 | ETL / ELT pipeline | ⏳ |
 | 5 | Data cleaning and Data Quality framework | ⏳ |
@@ -82,7 +82,8 @@ copy .env.example .env            # Windows (cp on macOS/Linux), then edit value
 # 3. (Optional) start a local PostgreSQL instead of a managed one
 docker compose up -d
 
-# 4. Verify everything is ready
+# 4. Create database schemas and verify everything is ready
+python scripts/setup_database.py
 python scripts/check_environment.py
 
 # 5. Run tests
