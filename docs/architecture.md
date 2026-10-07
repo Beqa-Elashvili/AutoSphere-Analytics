@@ -125,7 +125,8 @@ Database options:
 ## 6. Repository map
 
 ```
-common/      shared config + DB connection
+common/      shared config, DB connection, logging
+datagen/     synthetic data generator (clean data + injected DQ issues)
 data/        raw/ (generated CSVs), processed/ (cleaned + rejected rows)
 database/    schemas/ (DDL), views/ (analytics views), migrations/, seeds/
 etl/         extract/, validation/, transform/, load/, pipeline.py

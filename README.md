@@ -56,7 +56,7 @@ Built incrementally, with each phase reviewed before the next one starts.
 |-------|-------|--------|
 | 1 | Architecture and repository setup | ✅ |
 | 2 | PostgreSQL setup and database schema | ✅ |
-| 3 | Synthetic raw data generation | ⏳ |
+| 3 | Synthetic raw data generation | ✅ |
 | 4 | ETL / ELT pipeline | ⏳ |
 | 5 | Data cleaning and Data Quality framework | ⏳ |
 | 6 | Data Warehouse star schema | ⏳ |
@@ -82,7 +82,8 @@ copy .env.example .env            # Windows (cp on macOS/Linux), then edit value
 # 3. (Optional) start a local PostgreSQL instead of a managed one
 docker compose up -d
 
-# 4. Create database schemas and verify everything is ready
+# 4. Generate synthetic data, create database schemas, verify
+python scripts/generate_data.py
 python scripts/setup_database.py
 python scripts/check_environment.py
 
@@ -93,7 +94,8 @@ pytest
 ## Repository structure
 
 ```
-common/      shared configuration and database connection
+common/      shared configuration, database connection, logging
+datagen/     synthetic data generator (see data/README.md)
 data/        raw/ and processed/ datasets (generated, git-ignored)
 database/    DDL schemas, analytics views, migrations, seeds
 etl/         extract, validation, transform, load, pipeline

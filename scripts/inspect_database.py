@@ -17,6 +17,7 @@ import pandas as pd
 from sqlalchemy import text
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.stdout.reconfigure(encoding="utf-8")  # Georgian text on Windows consoles
 
 from common.db import PROJECT_SCHEMAS, get_engine  # noqa: E402
 

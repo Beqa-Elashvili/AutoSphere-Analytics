@@ -40,3 +40,7 @@ powerbi/**/.pbi/cache.abf
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Generator ground-truth labels (regenerated)
+data/evaluation/*
+!data/evaluation/.gitkeep
