@@ -233,3 +233,35 @@ def test_staging_load_is_transactional(engine, pipeline_output):
         conn.close()
     with engine.connect() as c:
         assert c.exec_driver_sql("SELECT count(*) FROM staging.sales").scalar() == before
+
+
+@pytest.mark.db
+def test_failed_load_keeps_previous_staging_data(engine, pipeline_output):
+    """The pipeline's own load step: a CRITICAL post-load failure must leave staging untouched."""
+    from types import SimpleNamespace
+
+    from etl.load.audit import finish_run, start_run
+    from etl.pipeline import PipelineResult, _load_and_verify
+    from etl.validation.checks import DataQualityError
+
+    _, _, results = pipeline_output
+    sales = results["sales"].clean
+    orphan = sales.head(1).assign(sale_line_id="SL-ROLLBACK", customer_id="CUS99999")   # unknown customer
+    broken = {t: SimpleNamespace(clean=r.clean, rejected=r.rejected) for t, r in results.items()}
+    broken["sales"] = SimpleNamespace(clean=pd.concat([sales, orphan]), rejected=results["sales"].rejected)
+
+    fingerprint = "SELECT count(*), COALESCE(sum(quantity), 0) FROM staging.sales"
+    with engine.connect() as c:
+        before = tuple(c.exec_driver_sql(fingerprint).one())
+    result = PipelineResult(results=broken, run_id=start_run(engine, "autosphere_tests", "ci"))
+    try:
+        with pytest.raises(DataQualityError):
+            _load_and_verify(engine, result, AS_OF)
+    finally:
+        finish_run(engine, result.run_id, "failed", error="rollback test")
+    failed = {(r.table_name, r.check_name) for r in result.dq_results if r.is_critical_failure}
+    assert ("staging.sales", "fk_customer_id") in failed
+    with engine.connect() as c:
+        assert tuple(c.exec_driver_sql(fingerprint).one()) == before            # previous load intact
+        assert c.exec_driver_sql("SELECT count(*) FROM audit.rejected_rows WHERE run_id = %s"
+                                 % result.run_id).scalar() == 0                  # quarantine rolled back too

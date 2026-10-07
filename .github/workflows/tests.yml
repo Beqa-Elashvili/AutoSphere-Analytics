@@ -1,0 +1,28 @@
+# Continuous integration: the offline test suite on every push and pull request.
+#
+# No secrets, no database, no API calls: tests that need PostgreSQL are skipped
+# automatically (marker `db`), and the AI tests use a fake Gemini client.
+# It cannot change any data. The full suite incl. database tests runs locally (docs/testing.md).
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  offline-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests (database tests skip themselves)
+        run: pytest -q -m "not db" --cov=common --cov=datagen --cov=etl --cov=ai --cov=reporting --cov-report=term

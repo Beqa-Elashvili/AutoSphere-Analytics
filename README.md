@@ -64,7 +64,7 @@ Built incrementally, with each phase reviewed before the next one starts.
 | 8 | AI/NLP customer feedback analysis | ✅ |
 | 9 | Power BI data model and dashboard specification | ✅ |
 | 10 | Automated reporting | ✅ |
-| 11 | Testing and end-to-end validation | ⏳ |
+| 11 | Testing and end-to-end validation | ✅ |
 | 12 | Final documentation and interview preparation | ⏳ |
 
 ## Quick start
@@ -99,8 +99,10 @@ python scripts/powerbi_reference.py    # values the Power BI report must show (s
 python scripts/scheduled_run.py        # scheduled job: refresh + management report (docs/automated-reporting.md)
 python scripts/generate_report.py      # report only -> reports/management/latest.html
 
-# 6. Run tests
-pytest
+# 6. Run tests and the end-to-end acceptance check (docs/testing.md)
+pytest -m "not db"                     # offline, no database needed
+pytest                                 # full suite incl. database tests
+python scripts/validate_end_to_end.py  # whole platform, PASS/FAIL checklist
 ```
 
 ## Repository structure
