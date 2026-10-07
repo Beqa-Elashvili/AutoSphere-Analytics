@@ -85,7 +85,7 @@ def is_connection_error(exc: BaseException) -> bool:
 
 
 def generate_report(engine, today: date, out_dir: Path = OUT_DIR, pipeline_error: str | None = None,
-                    generated_at: datetime | None = None) -> tuple[Path, Path, list]:
+                    generated_at: datetime | None = None, stale_data_days: int = 0) -> tuple[Path, Path, list]:
     """Write the dated HTML + Markdown report and a stable latest.html copy."""
     generated_at = generated_at or datetime.now()
     conn = engine.raw_connection()
@@ -93,7 +93,7 @@ def generate_report(engine, today: date, out_dir: Path = OUT_DIR, pipeline_error
         data = collect(conn)
     finally:
         conn.close()
-    alerts = build_alerts(data, today, pipeline_failed=pipeline_error is not None)
+    alerts = build_alerts(data, today, pipeline_failed=pipeline_error is not None, stale_data_days=stale_data_days)
     out_dir.mkdir(parents=True, exist_ok=True)
     stem = f"management_report_{today:%Y-%m-%d}"
     html_path, md_path = out_dir / f"{stem}.html", out_dir / f"{stem}.md"
@@ -141,7 +141,8 @@ def run_job(settings: Settings | None = None, today: date | None = None, retries
 
         # 2. publish (also after a failed refresh: the last good data is still in place)
         try:
-            html_path, md_path, alerts = generate_report(engine, today, out_dir, status.pipeline_error)
+            html_path, md_path, alerts = generate_report(engine, today, out_dir, status.pipeline_error,
+                                                         stale_data_days=settings.stale_data_days)
             status.report_html, status.report_markdown = str(html_path), str(md_path)
             status.alerts = dict(Counter(a.severity for a in alerts))
             log.info("Report written: %s (%s)", html_path, status.alerts)

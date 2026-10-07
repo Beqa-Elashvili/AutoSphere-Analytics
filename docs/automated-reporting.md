@@ -91,7 +91,7 @@ schtasks /Delete /TN "AutoSphere Daily Report" /F   # remove it
 |----------|------|-----------------------------|
 | CRITICAL | Today's refresh failed (the report shows the last good run) | - |
 | CRITICAL | Critical data-quality check failed | - |
-| HIGH | Latest sale older than 31 days (stale data; extracts are monthly) | - |
+| HIGH | Latest sale older than `STALE_DATA_DAYS` (stale data). **Off by default**: the synthetic dataset ends on a fixed date, so the demo report stays identical on every run. Set e.g. `STALE_DATA_DAYS=31` for a live monthly feed | - (off) |
 | HIGH | Branch YTD revenue more than 5% below prior YTD (`trend_status = Declining`) | Kutaisi −16.4% |
 | HIGH | Median maintenance turnaround more than 30% above the same quarter last year | Batumi 7.1 h vs 2.8 h |
 | HIGH / MEDIUM | Feedback anomaly in the latest quarter (HIGH at ≥ 2× baseline) | Batumi waiting time 2.1×, Kutaisi price 2.5× |

@@ -16,6 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.stdout.reconfigure(encoding="utf-8")
 
+from common.config import load_settings  # noqa: E402
 from common.db import get_engine  # noqa: E402
 from reporting.job import generate_report  # noqa: E402
 
@@ -25,7 +26,9 @@ def main() -> int:
     parser.add_argument("--as-of", type=date.fromisoformat, default=date.today(), help="report date (YYYY-MM-DD)")
     args = parser.parse_args()
 
-    html_path, md_path, alerts = generate_report(get_engine(), args.as_of)
+    settings = load_settings()
+    html_path, md_path, alerts = generate_report(get_engine(settings), args.as_of,
+                                                 stale_data_days=settings.stale_data_days)
     print(f"Alerts ({len(alerts)}):")
     for a in alerts:
         print(f"  {a.severity:8s} {a.area:18s} {a.message}")

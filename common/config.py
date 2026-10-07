@@ -38,6 +38,7 @@ class Settings:
     ai_batch_size: int = 25            # feedback items per external API request
     ai_concurrency: int = 4            # parallel external API requests
     ai_max_external_per_run: int = 20000  # cost guard: max items sent to the provider per run
+    stale_data_days: int = 0              # report alert when the latest sale is older; 0 = off (synthetic data)
 
     @property
     def ai_mode(self) -> str:
@@ -114,10 +115,11 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
         ai_batch_size=_positive_int(env, "AI_BATCH_SIZE", 25),
         ai_concurrency=_positive_int(env, "AI_CONCURRENCY", 4),
         ai_max_external_per_run=_positive_int(env, "AI_MAX_EXTERNAL_PER_RUN", 20000),
+        stale_data_days=_positive_int(env, "STALE_DATA_DAYS", 0, minimum=0),
     )
 
 
-def _positive_int(env: Mapping[str, str], name: str, default: int) -> int:
+def _positive_int(env: Mapping[str, str], name: str, default: int, minimum: int = 1) -> int:
     raw = _first(env, name)
     if raw is None:
         return default
@@ -125,8 +127,8 @@ def _positive_int(env: Mapping[str, str], name: str, default: int) -> int:
         value = int(raw)
     except ValueError as exc:
         raise ConfigError(f"{name} must be an integer, got '{raw}'.") from exc
-    if value <= 0:
-        raise ConfigError(f"{name} must be positive, got {value}.")
+    if value < minimum:
+        raise ConfigError(f"{name} must be at least {minimum}, got {value}.")
     return value
 
 

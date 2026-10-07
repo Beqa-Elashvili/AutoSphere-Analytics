@@ -97,3 +97,10 @@ def test_ai_tuning_values_are_validated():
     assert (s.ai_batch_size, s.ai_concurrency, s.ai_max_external_per_run) == (10, 2, 100)
     with pytest.raises(ConfigError):
         load_settings({"AI_CONCURRENCY": "0"})
+
+
+def test_stale_data_check_is_off_by_default_and_configurable():
+    assert load_settings({}).stale_data_days == 0
+    assert load_settings({"STALE_DATA_DAYS": "31"}).stale_data_days == 31
+    with pytest.raises(ConfigError):
+        load_settings({"STALE_DATA_DAYS": "-1"})

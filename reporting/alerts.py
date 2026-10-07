@@ -14,7 +14,6 @@ from reporting.data import ReportData
 CRITICAL, HIGH, MEDIUM, INFO = "CRITICAL", "HIGH", "MEDIUM", "INFO"
 SEVERITY_ORDER = {CRITICAL: 0, HIGH: 1, MEDIUM: 2, INFO: 3}
 
-STALE_DATA_DAYS = 31          # source extracts arrive monthly
 FALLBACK_SHARE_MAX_PCT = 2.0  # same threshold as the warehouse check fallback_label_share
 
 
@@ -25,7 +24,10 @@ class Alert:
     message: str
 
 
-def build_alerts(data: ReportData, today: date, pipeline_failed: bool = False) -> list[Alert]:
+def build_alerts(data: ReportData, today: date, pipeline_failed: bool = False,
+                 stale_data_days: int = 0) -> list[Alert]:
+    """stale_data_days: alert when the latest sale is older (0 = off). Off by default because the
+    synthetic dataset has a fixed end date; for a live feed set STALE_DATA_DAYS (e.g. 31 for monthly extracts)."""
     alerts: list[Alert] = []
 
     # --- data trust first: if the numbers can't be trusted, nothing else matters
@@ -38,9 +40,9 @@ def build_alerts(data: ReportData, today: date, pipeline_failed: bool = False) -
     if dq and dq["critical_failures"]:
         alerts.append(Alert(CRITICAL, "Data quality", f"{dq['critical_failures']} critical check(s) failed in run {dq['run_id']}."))
     period = data.row("period")
-    if period:
+    if period and stale_data_days:
         age = (today - period["last_date"]).days
-        if age > STALE_DATA_DAYS:
+        if age > stale_data_days:
             alerts.append(Alert(HIGH, "Data freshness", f"Latest sale is {age} days old ({period['last_date']})."))
 
     # --- business

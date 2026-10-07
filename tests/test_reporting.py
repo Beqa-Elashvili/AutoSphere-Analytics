@@ -91,9 +91,11 @@ def test_critical_quality_failures_and_warnings():
     assert (alerts[0].severity, alerts[-1].severity) == (CRITICAL, INFO)
 
 
-def test_stale_data_alert():
-    alerts = build_alerts(fake_data(), date(2026, 12, 1))
-    assert [a.area for a in alerts] == ["Data freshness"]
+def test_stale_data_alert_only_when_enabled():
+    late = date(2026, 12, 1)                                   # 62 days after the last sale
+    assert build_alerts(fake_data(), late) == []               # default off: synthetic data, stable demo
+    assert [a.area for a in build_alerts(fake_data(), late, stale_data_days=31)] == ["Data freshness"]
+    assert build_alerts(fake_data(), late, stale_data_days=90) == []
 
 
 def test_fallback_share_alert():
@@ -147,7 +149,7 @@ def job_env(tmp_path, monkeypatch):
     """Run the job without a database: the report step is replaced by a recorder."""
     calls = {"report": []}
 
-    def fake_report(engine, today, out_dir, pipeline_error=None, generated_at=None):
+    def fake_report(engine, today, out_dir, pipeline_error=None, generated_at=None, stale_data_days=0):
         calls["report"].append(pipeline_error)
         return out_dir / "r.html", out_dir / "r.md", build_alerts(fake_data(), today, pipeline_error is not None)
 
