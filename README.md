@@ -62,7 +62,7 @@ Built incrementally, with each phase reviewed before the next one starts.
 | 6 | Data Warehouse star schema | ✅ |
 | 7 | Analytical SQL and KPI layer | ✅ |
 | 8 | AI/NLP customer feedback analysis | ✅ |
-| 9 | Power BI data model and dashboard specification | ⏳ |
+| 9 | Power BI data model and dashboard specification | ✅ |
 | 10 | Automated reporting | ⏳ |
 | 11 | Testing and end-to-end validation | ⏳ |
 | 12 | Final documentation and interview preparation | ⏳ |
@@ -94,7 +94,8 @@ python scripts/demo_scd2.py            # see SCD Type 2 in action (rolled back)
 python scripts/run_analytics.py --all  # answer the 10 business questions with SQL
 python scripts/classify_feedback.py    # AI feedback classification (Georgian / English)
 python scripts/evaluate_ai.py          # AI accuracy vs ground truth
-python scripts/run_pipeline.py --ai-provider gemini   # use Gemini regardless of AI_PROVIDER
+python scripts/run_pipeline.py --ai-provider gemini   # use Gemini (PAID: first run ~0.9M tokens, later only new feedback)
+python scripts/powerbi_reference.py    # values the Power BI report must show (see powerbi/README.md)
 
 # 6. Run tests
 pytest
@@ -106,11 +107,11 @@ pytest
 common/      shared configuration, database connection, logging
 datagen/     synthetic data generator (see data/README.md)
 data/        raw/ and processed/ datasets (generated, git-ignored)
-database/    DDL schemas, analytics views, migrations, seeds
+database/    DDL schemas, analytics and Power BI (bi) views, security, migrations, seeds
 etl/         extract, validation, transform, load, pipeline
 analytics/   analytical SQL and KPI queries
 ai/          feedback sentiment and topic classification
-powerbi/     data model, DAX measures, dashboard specification
+powerbi/     data model, DAX measures, dashboard specification, theme
 scripts/     command-line entry points
 tests/       pytest suite
 docs/        technical and business documentation

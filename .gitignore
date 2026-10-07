@@ -30,6 +30,7 @@ logs/*
 !logs/.gitkeep
 
 # --- Power BI local artefacts ----------------------------------------------
+*.pbix
 *.pbix.bak
 powerbi/**/.pbi/localSettings.json
 powerbi/**/.pbi/cache.abf

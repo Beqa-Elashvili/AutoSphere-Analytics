@@ -1,0 +1,31 @@
+{
+  "name": "AutoSphere",
+  "dataColors": ["#1F4E79", "#2E86C1", "#48C9B0", "#F5B041", "#AF7AC5", "#5D6D7E", "#EC7063", "#58D68D"],
+  "good": "#27AE60",
+  "neutral": "#95A5A6",
+  "bad": "#C0392B",
+  "maximum": "#1F4E79",
+  "center": "#F7F9FA",
+  "minimum": "#C0392B",
+  "background": "#FFFFFF",
+  "foreground": "#1B2631",
+  "tableAccent": "#1F4E79",
+  "textClasses": {
+    "title": {"fontFace": "Segoe UI Semibold", "fontSize": 14, "color": "#1B2631"},
+    "header": {"fontFace": "Segoe UI Semibold", "fontSize": 12, "color": "#1B2631"},
+    "label": {"fontFace": "Segoe UI", "fontSize": 10, "color": "#5D6D7E"},
+    "callout": {"fontFace": "Segoe UI Semibold", "fontSize": 28, "color": "#1F4E79"}
+  },
+  "visualStyles": {
+    "*": {
+      "*": {
+        "border": [{"show": false}],
+        "dropShadow": [{"show": false}],
+        "background": [{"show": true, "color": {"solid": {"color": "#FFFFFF"}}}]
+      }
+    },
+    "page": {
+      "*": {"background": [{"color": {"solid": {"color": "#F4F6F8"}}, "transparency": 0}]}
+    }
+  }
+}

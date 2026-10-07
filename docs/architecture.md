@@ -28,6 +28,7 @@ flowchart LR
         DW[(dw schema<br/>star schema:<br/>dims + facts)]
         AN[(analytics schema<br/>KPI views)]
         AUD[(audit schema<br/>DQ report, run log)]
+        BIV[(bi schema<br/>Power BI semantic views)]
     end
 
     subgraph AI[AI / NLP - ai/]
@@ -40,8 +41,10 @@ flowchart LR
     STG -- feedback text --> CLS -- sentiment, topic, confidence --> DW
     DW --> AN
     DW -- post-load checks --> AUD
-    AN --> PBI[Power BI<br/>dashboards]
-    DW --> PBI
+    DW --> BIV
+    AN --> BIV
+    AUD --> BIV
+    BIV --> PBI[Power BI<br/>dashboards]
     AN --> RPT[Automated report<br/>reports/]
 ```
 
@@ -57,7 +60,7 @@ flowchart LR
 | 6 | **AI enrichment** | `ai/` | Classifies feedback text into language, sentiment, topic and confidence. Results are written as structured columns into the warehouse. |
 | 7 | **Analytics** | PostgreSQL `analytics` schema, `analytics/sql/` | Reusable views for KPIs (revenue, margin, AOV, growth, repeat rate, sentiment). |
 | 8 | **Audit** | PostgreSQL `audit` schema | `data_quality_report` (one row per check per run) and the pipeline run log. |
-| 9 | **BI** | `powerbi/` | Power BI model (star schema import), DAX measures, six dashboard pages. |
+| 9 | **BI** | PostgreSQL `bi` schema, `powerbi/` | Stable, privacy-filtered views imported by Power BI; DAX measures; eight dashboard pages. |
 | 10 | **Reporting** | `scripts/`, scheduler docs | Scheduled refresh: pipeline, then quality checks, then a KPI summary report. |
 
 ## 4. Key design decisions
@@ -71,9 +74,9 @@ flowchart LR
   aggregations). This is what it does best, and the SQL is easy to read.
 
 ### Four database schemas
-Separating `staging`, `dw`, `analytics` and `audit` gives clear ownership and
-permissions. Power BI only needs read access to `dw` and `analytics`, and the
-`audit` tables are kept apart from business data.
+Separating `staging`, `dw`, `analytics`, `audit` and `bi` gives clear ownership and
+permissions. Power BI only needs read access to `bi` (`database/security/powerbi_reader.sql`),
+and the `audit` tables are kept apart from business data.
 
 ### Fail fast on critical quality issues
 Every DQ check has a severity (`INFO`, `WARNING` or `CRITICAL`). A `CRITICAL`

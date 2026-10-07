@@ -11,7 +11,7 @@ from common.config import PROJECT_ROOT, ConfigError, Settings, load_settings
 SCHEMA_DIR = PROJECT_ROOT / "database" / "schemas"
 VIEWS_DIR = PROJECT_ROOT / "database" / "views"
 # Schemas owned by this project. Only these are ever dropped by a reset.
-PROJECT_SCHEMAS = ("staging", "dw", "analytics", "audit")
+PROJECT_SCHEMAS = ("staging", "dw", "analytics", "audit", "bi")
 
 
 def normalize_url(url: str) -> str:

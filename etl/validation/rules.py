@@ -320,4 +320,54 @@ def analytics_checks() -> list[Check]:
         condition("rate_in_range", "analytics.v_kpi_by_year", "repeat_customer_rate_pct NOT BETWEEN 0 AND 100",
                   CRITICAL, "repeat_customer_rate_pct", "repeat customer rate must be a valid percentage"),
     ]
+    return checks + bi_checks()
+
+
+# Power BI semantic layer: relationship keys and the facts that use them (powerbi/data-model.md).
+BI_DIMENSION_KEYS = {
+    "dim_date": "date_key", "dim_branch": "branch_key", "dim_category": "category_key",
+    "dim_product": "product_key", "dim_customer": "customer_key", "dim_employee": "employee_key",
+    "dim_vehicle": "vehicle_key",
+}
+BI_RELATIONSHIPS = [  # (fact, fact column, dimension)
+    ("fact_sales", "date_key", "dim_date"), ("fact_sales", "branch_key", "dim_branch"),
+    ("fact_sales", "category_key", "dim_category"), ("fact_sales", "product_key", "dim_product"),
+    ("fact_sales", "customer_key", "dim_customer"), ("fact_sales", "employee_key", "dim_employee"),
+    ("fact_service_orders", "opened_date_key", "dim_date"), ("fact_service_orders", "closed_date_key", "dim_date"),
+    ("fact_service_orders", "branch_key", "dim_branch"), ("fact_service_orders", "customer_key", "dim_customer"),
+    ("fact_service_orders", "vehicle_key", "dim_vehicle"), ("fact_service_orders", "employee_key", "dim_employee"),
+    ("fact_service_items", "date_key", "dim_date"), ("fact_service_items", "category_key", "dim_category"),
+    ("fact_service_items", "product_key", "dim_product"), ("fact_service_items", "branch_key", "dim_branch"),
+    ("fact_payments", "date_key", "dim_date"), ("fact_payments", "branch_key", "dim_branch"),
+    ("fact_payments", "customer_key", "dim_customer"),
+    ("fact_customer_feedback", "date_key", "dim_date"), ("fact_customer_feedback", "branch_key", "dim_branch"),
+    ("fact_customer_feedback", "customer_key", "dim_customer"),
+]
+
+
+def bi_checks() -> list[Check]:
+    """What Power BI relies on: unique dimension keys (1:* relationships), no fact row
+    outside its dimension (it would land in a '(Blank)' member), and the same totals as SQL."""
+    checks = [unique(f"bi.{dim}", key) for dim, key in BI_DIMENSION_KEYS.items()]
+    checks += [foreign_key(f"bi.{fact}", col, f"bi.{dim}", BI_DIMENSION_KEYS[dim])
+               for fact, col, dim in BI_RELATIONSHIPS]
+    checks += [
+        _same("reconcile_revenue", "bi.fact_sales", "SELECT COALESCE(sum(net_amount), 0) FROM bi.fact_sales",
+              RECOGNIZED_REVENUE, "Power BI revenue must equal recognized revenue", tolerance=0.01),
+        _same("reconcile_service_revenue", "bi.fact_service_orders",
+              "SELECT COALESCE(sum(total_revenue), 0) FROM bi.fact_service_orders",
+              SERVICE_REVENUE, "Power BI service revenue must equal completed service revenue", tolerance=0.01),
+        _same("reconcile_ytd_revenue", "bi.dim_date",
+              "SELECT COALESCE(sum(f.net_amount), 0) FROM bi.fact_sales f JOIN bi.dim_date d USING (date_key) "
+              "WHERE d.is_current_ytd", "SELECT COALESCE(ytd_revenue, 0) FROM analytics.v_kpi_ytd",
+              "YTD flag in the date table must reproduce analytics.v_kpi_ytd", tolerance=0.01),
+        _same("reconcile_prior_ytd_revenue", "bi.dim_date",
+              "SELECT COALESCE(sum(f.net_amount), 0) FROM bi.fact_sales f JOIN bi.dim_date d USING (date_key) "
+              "WHERE d.is_prior_ytd", "SELECT COALESCE(prior_ytd_revenue, 0) FROM analytics.v_kpi_ytd",
+              "prior-YTD flag must reproduce analytics.v_kpi_ytd", tolerance=0.01),
+        Check("no_pii_columns", "bi.dim_customer", CRITICAL,
+              "SELECT count(*) FROM information_schema.columns WHERE table_schema = 'bi' "
+              "AND column_name IN ('email', 'phone', 'vin', 'raw_record')",
+              None, "contact data and raw records must never reach the report layer"),
+    ]
     return checks

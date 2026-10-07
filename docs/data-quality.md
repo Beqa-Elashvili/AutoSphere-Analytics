@@ -29,6 +29,8 @@ flowchart LR
 |-------|------------------|-----------------|
 | `source` | Raw-file quality: one result per rejection reason (`rejected_negative_quantity`) and per automatic repair (`fixed_city_normalized`), plus the **invalid-row rate** per table and the **schema contract** per file | The cleaning step itself (`etl/transform/cleaners.py`), so the rules that clean and the rules that measure can't drift apart |
 | `post_load` | ~100 declarative SQL checks on the loaded staging tables | `etl/validation/rules.py` |
+| `warehouse` | Star schema: row/amount reconciliation with staging, SCD2 integrity, logical foreign keys, unknown-member usage, AI label coverage | `warehouse_checks()` |
+| `analytics` | KPI views reconcile to the facts; **Power BI layer** (`bi`): unique dimension keys, no fact row outside its dimension, totals and YTD equal to SQL, no contact-data columns | `analytics_checks()`, `bi_checks()` |
 
 **Why run the post-load checks inside the load transaction?** If a check fails, the whole
 load is rolled back. Dashboards keep showing the last good data instead of half-broken
