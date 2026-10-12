@@ -6,7 +6,8 @@ All PostgreSQL objects are defined as plain, versioned SQL files.
 |--------|----------|
 | `schemas/` | Baseline DDL, executed in filename order (`00_`, `01_`, ...). Idempotent (`IF NOT EXISTS`). |
 | `warehouse/` | ELT SQL that builds the star schema from staging, run in filename order inside one transaction: date dimension, unknown members, SCD1 dimensions, SCD2 customer dimension, facts. |
-| `views/` | Analytical views for the `analytics` schema (Phase 7). |
+| `views/` | Analytical views (`analytics` schema: KPIs, feedback, anomalies) and the Power BI semantic layer (`bi` schema, `10_bi.sql`). Re-created by every pipeline run. |
+| `security/` | Optional least-privilege login for Power BI (`powerbi_reader.sql`), run manually; reads only the `bi` schema. |
 | `seeds/` | Static reference data that isn't generated (e.g. the date dimension range). |
 | `migrations/` | Incremental changes for an already-deployed database. Not needed while the schema can be rebuilt from scratch; this is where `ALTER TABLE` scripts would go once the warehouse holds history that must be preserved. |
 

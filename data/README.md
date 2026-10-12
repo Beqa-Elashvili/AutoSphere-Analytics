@@ -18,8 +18,8 @@ and can be recreated at any time.
 | Folder | Contents |
 |--------|----------|
 | `raw/` | 11 CSV files as a source system would export them: all text, UTF-8, **with data-quality problems**. Plus `_generation_manifest.json`. |
-| `processed/` | Cleaned outputs and rejected-row extracts written by the ETL (Phase 4+). |
-| `evaluation/` | `feedback_labels.csv`: the generator's ground-truth language, sentiment and topic for every feedback record. **Used only to measure AI accuracy (Phase 8), never by the pipeline.** |
+| `processed/` | Cleaned outputs and rejected-row extracts written by the ETL. |
+| `evaluation/` | `feedback_labels.csv`: the generator's ground-truth language, sentiment and topic for every feedback record. **Used only to measure AI accuracy, never by the pipeline.** |
 
 ## Datasets
 

@@ -195,3 +195,18 @@ def test_date_table_is_contiguous_whole_years(conn):
 def test_customer_dimension_has_no_contact_data(bi_columns):
     assert not {"email", "phone"} & bi_columns["dim_customer"]
     assert "vin" not in bi_columns["dim_vehicle"]
+
+
+def test_kpi_dictionary_dax_matches_the_measure_catalog():
+    """The KPI dictionary shows the same measures as powerbi/dax-measures.md, never stale variants."""
+    catalog = {}
+    for block in dax_blocks():
+        for m in re.finditer(r"^([A-Z_][^=\n]*?) =(.*?)(?=^\S|\Z)", block, re.MULTILINE | re.DOTALL):
+            catalog[m.group(1).strip()] = " ".join(m.group(2).split())
+    dictionary = (PROJECT_ROOT / "docs" / "kpi-dictionary.md").read_text(encoding="utf-8")
+    shown = re.findall(r"```dax\n(.*?)```", dictionary, re.DOTALL)
+    assert shown
+    for block in shown:
+        for m in re.finditer(r"^([A-Z_][^=\n]*?) =(.*?)(?=^\S|\Z)", block, re.MULTILINE | re.DOTALL):
+            name, body = m.group(1).strip(), " ".join(m.group(2).split())
+            assert catalog.get(name) == body, f"kpi-dictionary measure '{name}' differs from dax-measures.md"

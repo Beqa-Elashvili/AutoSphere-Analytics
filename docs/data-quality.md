@@ -122,7 +122,8 @@ starts producing more defects than usual.
 - Thresholds (2% / 10%, completeness tolerances) are static. A natural next step is
   anomaly detection on the run history, for example alerting when today's rejection rate is
   three times the 30-day average.
-- Checks run sequentially (~100 short queries, ~10 s on a remote database). Fine at this
-  scale; they could be batched into fewer queries if needed.
-- Warehouse-level checks (fact-to-dimension keys, reconciliation of revenue between staging
-  and warehouse) are added in Phase 6.
+- Checks are batched into a few round trips (one SELECT of scalar sub-queries per chunk),
+  because network latency to the hosted database dominated. At much larger volumes,
+  expensive checks would run on samples or on the new partition only.
+- Rejection reasons are quarantined but not routed back to source owners automatically;
+  in production, a weekly extract of `audit.rejected_rows` per source system would close the loop.

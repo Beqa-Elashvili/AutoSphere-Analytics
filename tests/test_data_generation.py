@@ -1,4 +1,5 @@
 """Tests for synthetic data generation: realism, internal consistency, injected defects."""
+import hashlib
 import re
 
 import numpy as np
@@ -205,7 +206,11 @@ def test_csv_round_trip_preserves_georgian_text(raw_and_manifest, tmp_path):
 def test_no_real_company_names_and_synthetic_contacts_only(raw_and_manifest):
     raw, _ = raw_and_manifest
     blob = " ".join(" ".join(df.astype(str).agg(" ".join, axis=1)) for df in raw.values()).lower()
-    assert "tegeta" not in blob
+    # Real company names must never appear. They are stored as SHA-256 hashes, so the
+    # project itself never contains the name it guards against.
+    forbidden = {"76f8a619ba377bb82121dc2c3bf5e5b9adb6449cc0f610ac929c3468d1ca1e05"}
+    words = set(re.findall(r"[a-z]+", blob))
+    assert not {hashlib.sha256(w.encode()).hexdigest() for w in words} & forbidden
     emails = raw["customers"].email
     real = emails[(emails != "") & emails.str.contains("@")]
     assert real.str.lower().str.endswith("@example.com").all()

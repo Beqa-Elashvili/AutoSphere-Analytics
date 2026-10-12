@@ -146,7 +146,7 @@ Try it without changing any data: `python scripts/demo_scd2.py` (it runs in a tr
 | `fact_service_orders` | one service order | `service_order_id` (PK) | labour hours, labour revenue, parts revenue, total revenue, cost, profit, **turnaround hours**, item count | Two date roles: opened and closed. Aggregated from its lines; the gate verifies that order revenue = sum of line revenue. |
 | `fact_service_items` | one labour or part line | `service_item_id` (PK), `service_order_id` | quantity, unit price/cost, revenue, cost, profit | Supports "service revenue by category" (parts) vs labour. Warranty lines carry 0 revenue. |
 | `fact_payments` | one payment attempt | `payment_id` (PK), `source_reference` | amount, **net cash** (completed +, refunded −, failed 0) | Branch is inherited from the paid invoice or service order. |
-| `fact_customer_feedback` | one feedback submission | `feedback_id` (PK) | rating | Holds the text and the **AI columns** (language, sentiment, topic, confidence, method), filled by the NLP pipeline (Phase 8). |
+| `fact_customer_feedback` | one feedback submission | `feedback_id` (PK) | rating | Holds the text and the **AI columns** (language, sentiment, topic, confidence, method), filled by the NLP step (`ai/pipeline.py`). |
 
 ### Relationships: logical foreign keys
 

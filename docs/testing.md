@@ -9,9 +9,9 @@ Three levels of evidence that the platform works:
 | **End-to-end acceptance** | `python scripts/validate_end_to_end.py` | One run of the whole platform, followed through every layer, with a PASS/FAIL checklist and evidence | ~3 min (`--skip-pipeline`: ~30 s) |
 
 ```powershell
-pytest -m "not db"                       # offline: 165 passed, DB tests deselected
-pytest                                   # full: 235 passed (needs DATABASE_URL)
-pytest --cov=common --cov=datagen --cov=etl --cov=ai --cov=reporting   # with coverage (88%)
+pytest -m "not db"                       # offline: 166 passed, DB tests deselected
+pytest                                   # full: 236 passed (needs DATABASE_URL)
+pytest --cov=common --cov=datagen --cov=etl --cov=ai --cov=reporting   # with coverage (89%)
 python scripts/validate_end_to_end.py    # 16/16 checks, writes reports/e2e_validation.md
 ```
 
@@ -28,7 +28,7 @@ pipeline name `autosphere_tests`, so reports and dashboards ignore it.
               ┌──┴─────────────────────────┴──┐
               │ integration (70 DB tests)     │  SQL against PostgreSQL, always rolled back
          ┌────┴───────────────────────────────┴────┐
-         │ unit / component (165 offline tests)    │  pure Python, fake Gemini, no network
+         │ unit / component (166 offline tests)    │  pure Python, fake Gemini, no network
          └─────────────────────────────────────────┘
 ```
 
@@ -79,7 +79,7 @@ pipeline name `autosphere_tests`, so reports and dashboards ignore it.
 
 ## Code coverage
 
-`pytest --cov=...` on the full suite: **88%** of 2,400 statements.
+`pytest --cov=...` on the full suite: **89%** of 2,400 statements.
 
 | Area | Coverage | Note |
 |------|---------:|------|

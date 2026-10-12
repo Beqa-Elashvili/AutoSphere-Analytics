@@ -2,8 +2,8 @@
 
 > One definition per KPI, implemented once in SQL (`analytics` views) and once in DAX (Power BI).
 > Automated tests prove that the views, the stand-alone KPI queries (`analytics/kpi_queries/`) and
-> a pandas recomputation all produce the same numbers. Pipeline step 7 reconciles every view to the
-> fact tables on every run.
+> a pandas recomputation all produce the same numbers. Pipeline step 8 reconciles every view (and the Power BI
+> layer) to the fact tables on every run.
 
 **Conventions used by every KPI**
 
@@ -15,7 +15,7 @@
 | Currency | GEL, net of discounts, VAT not modelled. |
 | Comparable periods | The latest year is partial (data ends 2026-09-30). Annual growth is only shown between complete years; year-to-date comparisons use the **same calendar window** last year (`v_kpi_ytd`). |
 
-DAX table names match the PostgreSQL tables imported into Power BI (`fact_sales`, `dim_date`, ...).
+DAX uses the Power BI model of `powerbi/data-model.md` (tables `Sales`, `Service Orders`, `Date`, ... imported from the `bi` views). The `bi` views already contain only completed sales and service orders, so the measures need no status filter. The full, tested set of 79 measures is in `powerbi/dax-measures.md`; the snippets below are the same measures.
 
 ---
 
@@ -57,8 +57,7 @@ python scripts/inspect_database.py --query "SELECT * FROM analytics.v_kpi_ytd"
 SELECT SUM(net_amount) FROM dw.fact_sales WHERE is_revenue_recognized;
 ```
 ```dax
-Total Revenue =
-CALCULATE ( SUM ( fact_sales[net_amount] ), fact_sales[is_revenue_recognized] = TRUE () )
+Revenue = SUM ( Sales[net_amount] )
 ```
 
 ## 2. Profit
@@ -72,8 +71,7 @@ CALCULATE ( SUM ( fact_sales[net_amount] ), fact_sales[is_revenue_recognized] = 
 | **Limitations** | Gross profit only: staff, rent and marketing costs aren't allocated. Service profit is reported separately (`total_profit` in `v_branch_performance` combines both). |
 
 ```dax
-Total Profit =
-CALCULATE ( SUM ( fact_sales[profit_amount] ), fact_sales[is_revenue_recognized] = TRUE () )
+Profit = SUM ( Sales[profit_amount] )
 ```
 
 ## 3. Profit Margin
@@ -87,7 +85,7 @@ CALCULATE ( SUM ( fact_sales[profit_amount] ), fact_sales[is_revenue_recognized]
 | **Limitations** | Ratio KPI: never average the margins of branches or months. Always recompute as total profit / total revenue (the DAX measure does this automatically). |
 
 ```dax
-Profit Margin % = DIVIDE ( [Total Profit], [Total Revenue] )
+Profit Margin % = DIVIDE ( [Profit], [Revenue] )
 ```
 
 ## 4. Orders
@@ -101,8 +99,7 @@ Profit Margin % = DIVIDE ( [Total Profit], [Total Revenue] )
 | **Limitations** | Counting lines instead of invoices would overstate orders about 2.5×. The test `test_aov_divides_by_orders_not_lines` guards this. |
 
 ```dax
-Total Orders =
-CALCULATE ( DISTINCTCOUNT ( fact_sales[invoice_number] ), fact_sales[is_revenue_recognized] = TRUE () )
+Orders = DISTINCTCOUNT ( Sales[invoice_number] )
 ```
 
 ## 5. Average Order Value (AOV)
@@ -116,7 +113,7 @@ CALCULATE ( DISTINCTCOUNT ( fact_sales[invoice_number] ), fact_sales[is_revenue_
 | **Limitations** | A few vehicle invoices (30k–110k GEL) push the mean far above the typical invoice (median ≈ 460 GEL). Analyse AOV with and without the vehicle business line. |
 
 ```dax
-Average Order Value = DIVIDE ( [Total Revenue], [Total Orders] )
+Avg Order Value = DIVIDE ( [Revenue], [Orders] )
 ```
 
 ## 6. Service Revenue
@@ -130,8 +127,7 @@ Average Order Value = DIVIDE ( [Total Revenue], [Total Orders] )
 | **Limitations** | Warranty work is billed at 0 GEL to the customer (manufacturer reimbursement isn't modelled), so warranty orders lower the average service value. Service is dated by the **opening** date. |
 
 ```dax
-Service Revenue =
-CALCULATE ( SUM ( fact_service_orders[total_revenue] ), fact_service_orders[is_completed] = TRUE () )
+Service Revenue = SUM ( 'Service Orders'[total_revenue] )
 ```
 
 ## 7. Service Orders
@@ -145,8 +141,7 @@ CALCULATE ( SUM ( fact_service_orders[total_revenue] ), fact_service_orders[is_c
 | **Limitations** | Excludes open (in-progress) and cancelled orders. Recent periods are slightly understated until open orders close. |
 
 ```dax
-Service Orders =
-CALCULATE ( COUNTROWS ( fact_service_orders ), fact_service_orders[is_completed] = TRUE () )
+Service Order Count = COUNTROWS ( 'Service Orders' )
 ```
 
 ## 8. Average Service Order Value
@@ -160,7 +155,7 @@ CALCULATE ( COUNTROWS ( fact_service_orders ), fact_service_orders[is_completed]
 | **Limitations** | Includes 0-GEL warranty orders. Filter `is_warranty = false` for paid work only. |
 
 ```dax
-Avg Service Order Value = DIVIDE ( [Service Revenue], [Service Orders] )
+Avg Service Order Value = DIVIDE ( [Service Revenue], [Service Order Count] )
 ```
 
 ## 9. Customer Count
@@ -174,11 +169,7 @@ Avg Service Order Value = DIVIDE ( [Service Revenue], [Service Orders] )
 | **Limitations** | Service-only customers aren't counted (this is a sales KPI). Counted on the business key, so SCD2 versions don't inflate it. |
 
 ```dax
-Customer Count =
-CALCULATE (
-    DISTINCTCOUNT ( dim_customer[customer_id] ),
-    FILTER ( fact_sales, fact_sales[is_revenue_recognized] = TRUE () )
-)
+Customers = DISTINCTCOUNT ( Sales[customer_id] )
 ```
 *The fact table used as a filter propagates to `dim_customer` through the expanded table,
 so only customers with completed sales in the current filter context are counted.*
@@ -195,11 +186,11 @@ so only customers with completed sales in the current filter context are counted
 
 ```dax
 Repeat Customers =
-COUNTROWS (
-    FILTER ( VALUES ( dim_customer[customer_id] ), CALCULATE ( [Total Orders] ) >= 2 )
-)
+    COUNTROWS (
+        FILTER ( VALUES ( Sales[customer_id] ), CALCULATE ( [Orders] ) >= 2 )
+    )
 
-Repeat Customer Rate % = DIVIDE ( [Repeat Customers], [Customer Count] )
+Repeat Customer Rate % = DIVIDE ( [Repeat Customers], [Customers] )
 ```
 
 ## 11. Revenue Growth
@@ -213,13 +204,13 @@ Repeat Customer Rate % = DIVIDE ( [Repeat Customers], [Customer Count] )
 | **Limitations** | **Comparability is everything.** Comparing 9 months of 2026 with 12 months of 2025 shows a fake −18.5%; the correct YTD comparison is +15.6%. The views therefore return NULL annual growth for partial years. |
 
 ```dax
-Revenue Growth % (YTD vs PY YTD) =
-VAR LastDataDate = CALCULATE ( MAX ( fact_sales[sale_datetime] ), REMOVEFILTERS () )
-VAR CurYTD  = CALCULATE ( [Total Revenue], DATESYTD ( dim_date[full_date] ),
-                          dim_date[full_date] <= LastDataDate )
-VAR PrevYTD = CALCULATE ( [Total Revenue], SAMEPERIODLASTYEAR ( DATESYTD ( dim_date[full_date] ) ),
-                          dim_date[full_date] <= EDATE ( LastDataDate, -12 ) )
-RETURN DIVIDE ( CurYTD - PrevYTD, PrevYTD )
+Revenue CY YTD =
+    CALCULATE ( [Revenue], REMOVEFILTERS ( 'Date' ), 'Date'[is_current_ytd] = TRUE () )
+
+Revenue PY YTD =
+    CALCULATE ( [Revenue], REMOVEFILTERS ( 'Date' ), 'Date'[is_prior_ytd] = TRUE () )
+
+Revenue YTD YoY % = DIVIDE ( [Revenue CY YTD] - [Revenue PY YTD], [Revenue PY YTD] )
 ```
 
 ## 12. YoY Growth (Year-over-Year)
@@ -233,10 +224,9 @@ RETURN DIVIDE ( CurYTD - PrevYTD, PrevYTD )
 | **Limitations** | Monthly YoY per branch is noisy because of vehicles. Prefer quarterly or YTD views for decisions. |
 
 ```dax
-Previous Year Revenue =
-CALCULATE ( [Total Revenue], SAMEPERIODLASTYEAR ( dim_date[full_date] ) )
+Revenue LY = CALCULATE ( [Revenue], SAMEPERIODLASTYEAR ( 'Date'[full_date] ) )
 
-YoY Revenue % = DIVIDE ( [Total Revenue] - [Previous Year Revenue], [Previous Year Revenue] )
+Revenue YoY % = DIVIDE ( [Revenue] - [Revenue LY], [Revenue LY] )
 ```
 
 ## 13. MoM Growth (Month-over-Month)
@@ -250,10 +240,9 @@ YoY Revenue % = DIVIDE ( [Total Revenue] - [Previous Year Revenue], [Previous Ye
 | **Limitations** | Strongly seasonal (tire seasons, winter batteries) and volatile. Use together with YoY and the 3-month rolling average (`rolling_3m_avg_revenue`). |
 
 ```dax
-Previous Month Revenue =
-CALCULATE ( [Total Revenue], DATEADD ( dim_date[full_date], -1, MONTH ) )
+Revenue PM = CALCULATE ( [Revenue], DATEADD ( 'Date'[full_date], -1, MONTH ) )
 
-MoM Revenue % = DIVIDE ( [Total Revenue] - [Previous Month Revenue], [Previous Month Revenue] )
+Revenue MoM % = DIVIDE ( [Revenue] - [Revenue PM], [Revenue PM] )
 ```
 
 ---
@@ -262,6 +251,7 @@ MoM Revenue % = DIVIDE ( [Total Revenue] - [Previous Month Revenue], [Previous M
 
 | KPI | Definition | Source | Why it matters |
 |-----|-----------|--------|----------------|
+| Negative feedback rate | Feedback labelled negative by AI / all feedback (by branch, topic, period) | `v_sentiment_by_branch`, `v_feedback_monthly` | Why customers are unhappy, and where (Batumi 2026: 53.4%) |
 | Median turnaround hours | Median hours from opening to closing a completed service order | `v_service_turnaround`, `v_service_monthly` | The operational driver of waiting-time complaints (Batumi 2026) |
 | Revenue share % | Share of company revenue per branch, category or city | performance views | Concentration risk |
 | Payment failure rate | Failed payment attempts / attempts | `v_payment_mix` | Checkout friction |
@@ -273,4 +263,4 @@ MoM Revenue % = DIVIDE ( [Total Revenue] - [Previous Month Revenue], [Previous M
 A **metric** is any measurement (number of sales lines, average turnaround of diagnostics).
 A **KPI** is a metric tied to a business objective, with an owner and a target, used to make
 decisions (Revenue Growth vs plan, Repeat Customer Rate vs loyalty target). Every KPI above
-lists the decision it supports in `docs/business-requirements.md` (Phase 12).
+lists the decision it supports in `docs/business-requirements.md`.
