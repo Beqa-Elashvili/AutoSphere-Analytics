@@ -23,7 +23,7 @@ a reviewer can open or run. All data is synthetic and the company is fictional.
 | Requirement | Project Implementation | Evidence |
 |-------------|------------------------|----------|
 | Automated reporting | Scheduled job (Task Scheduler / cron / GitHub Actions): refresh, HTML/Markdown management report, rule-based alerts, failure handling | `reporting/`, `scripts/scheduled_run.py`, `docs/automated-reporting.md` |
-| Testing | 236 pytest tests (166 offline, 70 database), three-way KPI reconciliation, 89% coverage, CI on every push | `tests/`, `.github/workflows/tests.yml`, `docs/testing.md` |
+| Testing | 238 pytest tests (167 offline, 71 database), three-way KPI reconciliation, 89% coverage, CI on every push | `tests/`, `.github/workflows/tests.yml`, `docs/testing.md` |
 | End-to-end validation | One command follows data from raw CSV to report: 16 PASS/FAIL checks with evidence | `scripts/validate_end_to_end.py`, `reports/e2e_validation.md` |
 | AI evaluation and monitoring | Ground-truth and hand-written held-out evaluation, rating agreement, fallback share, lineage per row | `scripts/evaluate_ai.py`, `ai/eval/`, `analytics.v_ai_classification_quality` |
 | Data governance and security | Secrets only in `.env`, masked connection strings, no PII in the report layer, optional read-only BI login | `.gitignore`, `common/config.py`, `database/security/` |

@@ -12,10 +12,29 @@ cd "<project folder>"
 .venv\Scripts\activate
 python scripts/check_environment.py         # database reachable, AI mode shown
 python scripts/run_pipeline.py              # fresh run before the demo (~2.5 min)
+python scripts/generate_data_journey.py     # visual walkthrough page (Georgian + English)
 ```
 
 Open in advance: `README.md` (architecture diagram), the Power BI report if it has been
 built, and a terminal with a large font.
+
+## Visual version: the Data Journey page
+
+```powershell
+start reports\data_journey.html
+```
+
+One page that tells the whole story visually, in Georgian and English (switch at the top right):
+1. **Source:** 11 tables; raw = clean + quarantined in every row of the table.
+2. **Before → after:** real raw values (seven spellings of Tbilisi, three date formats, `SL0000048` with quantity −2) next to the same records in PostgreSQL.
+3. **Why rows were quarantined:** the top 12 reasons.
+4. **Quality gates:** the 9 pipeline steps and 340 checks with 0 critical failures.
+5. **Star schema:** facts and dimensions with row counts.
+6. **One number everywhere:** the same revenue in the warehouse, the KPI views and Power BI.
+7. **Business answers:** +15.6% YTD (vs a naive −18.5%), Kutaisi −16.4%, the Batumi turnaround chart, AI anomalies.
+
+Scroll through it top to bottom while telling the story below; the terminal steps then show
+the same facts live.
 
 ---
 
@@ -115,7 +134,7 @@ python scripts/powerbi_reference.py
 ```powershell
 pytest -m "not db" -q
 ```
-**Expected:** `166 passed` in about 15 seconds. The full suite (`pytest`) has 236 tests,
+**Expected:** `167 passed` in about 15 seconds. The full suite (`pytest`) has 238 tests,
 including database tests. CI runs the offline suite on every push.
 
 > "Every KPI is computed three independent ways and compared. The most important rule, that a

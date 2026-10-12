@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="ka">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data Journey · მონაცემების გზა</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --card: #ffffff;
+  --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --ring: rgba(11,11,11,0.10);
+  --s1: #2a78d6; --s2: #eb6834;
+  --good: #0ca30c; --good-text: #006300; --critical: #d03b3b;
+  --accent-wash: #eaf2fc;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --card: #1f1f1e;
+    --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10);
+    --s1: #3987e5; --s2: #d95926; --good-text: #0ca30c; --accent-wash: #16263a;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --card: #1f1f1e;
+  --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10);
+  --s1: #3987e5; --s2: #d95926; --good-text: #0ca30c; --accent-wash: #16263a;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink);
+       font: 15px/1.5 system-ui, -apple-system, "Segoe UI", "Noto Sans Georgian", sans-serif; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 24px 16px 56px; }
+header { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: flex-start; }
+h1 { font-size: 28px; margin: 0; line-height: 1.2; }
+h2 { font-size: 19px; margin: 0 0 4px; }
+.sub { color: var(--ink-2); margin: 4px 0 0; }
+.meta { color: var(--muted); font-size: 13px; margin-top: 6px; }
+.toggle { display: inline-flex; border: 1px solid var(--ring); border-radius: 8px; overflow: hidden; background: var(--card); }
+.toggle button { border: 0; background: transparent; color: var(--ink-2); padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: var(--accent-wash); color: var(--ink); font-weight: 600; }
+section { margin-top: 36px; }
+.lead { color: var(--ink-2); margin: 2px 0 14px; max-width: 820px; }
+.card { background: var(--card); border: 1px solid var(--ring); border-radius: 12px; padding: 16px; }
+.grid { display: grid; gap: 12px; }
+.tiles { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-top: 20px; }
+.tile .label { font-size: 13px; color: var(--ink-2); }
+.tile .value { font-size: 30px; font-weight: 650; line-height: 1.15; margin-top: 4px; }
+.tile .note { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.tile.good .value { color: var(--good-text); }
+.three { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.two { grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
+@media (max-width: 520px) { .two { grid-template-columns: 1fr; } }
+/* language: both | ka | en */
+body.lang-ka .en, body.lang-en .ka, body.lang-both .en.dup { display: none; }
+body.lang-both .en.sec { display: block; color: var(--muted); font-size: 0.86em; }
+body.lang-both h1 .en, body.lang-both h2 .en, body.lang-both .label .en { color: var(--muted); font-weight: 400; }
+body.lang-both h1 .en::before, body.lang-both h2 .en::before, body.lang-both .label .en:not(.sec)::before { content: " · "; }
+.en.sec { display: block; }
+body.lang-both th .en { display: block; color: var(--muted); font-weight: 400; font-size: 11.5px; }
+body.lang-both .hbars .lbl .en { display: block; font-size: 11.5px; color: var(--muted); }
+/* tables */
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: 7px 8px; text-align: left; border-bottom: 1px solid var(--grid); vertical-align: middle; }
+th { color: var(--ink-2); font-weight: 600; font-size: 12.5px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 12.5px; }
+.muted { color: var(--muted); }
+/* 100% bars */
+.bar100 { display: flex; gap: 2px; height: 12px; min-width: 140px; }
+.bar100 span { display: block; height: 100%; }
+.bar100 .c { background: var(--s1); border-radius: 4px 0 0 4px; }
+.bar100 .q { background: var(--s2); border-radius: 0 4px 4px 0; min-width: 3px; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); margin-bottom: 8px; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+/* before -> after */
+.ba h3 { margin: 0 0 10px; font-size: 15px; }
+.ba .before, .ba .after { border-radius: 8px; padding: 10px 12px; }
+.ba .before { background: var(--surface); border: 1px dashed var(--axis); }
+.ba .after { background: var(--accent-wash); margin-top: 8px; }
+.ba .arrow { text-align: center; color: var(--muted); font-size: 18px; line-height: 1; margin-top: 8px; }
+.tag { display: inline-block; font-size: 11.5px; font-weight: 600; letter-spacing: .02em; color: var(--ink-2); margin-bottom: 6px; }
+.chip { display: inline-block; border: 1px solid var(--ring); border-radius: 6px; padding: 1px 7px; margin: 2px 4px 2px 0; background: var(--card); font-size: 13px; }
+.chip b { font-weight: 600; margin-left: 4px; color: var(--ink-2); }
+.status { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.status.good { color: var(--good-text); }
+.status.bad { color: var(--critical); }
+.raw { word-break: break-all; font-size: 12px; color: var(--ink-2); margin-top: 6px; }
+/* horizontal bar chart */
+.hbars { display: grid; grid-template-columns: minmax(150px, 38%) 1fr; gap: 8px 10px; align-items: center; font-size: 13px; }
+.hbars .lbl { color: var(--ink-2); line-height: 1.3; overflow-wrap: anywhere; }
+.hbars .track { position: relative; height: 14px; }
+.hbars .fill { height: 100%; background: var(--s1); border-radius: 0 4px 4px 0; }
+.hbars .val { position: absolute; top: -2px; font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; padding-left: 6px; }
+.hit { cursor: default; }
+/* pipeline steps */
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; counter-reset: s; }
+.step { background: var(--surface); border: 1px solid var(--ring); border-radius: 8px; padding: 8px 10px; font-size: 13px; position: relative; }
+.step::before { counter-increment: s; content: counter(s); display: block; font-weight: 700; color: var(--s1); }
+.step.gate { border-color: var(--s1); }
+/* star */
+.star { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 10px; align-items: center; }
+@media (max-width: 640px) { .star { grid-template-columns: 1fr; } }
+.dims, .facts { display: grid; gap: 8px; }
+.box { border: 1px solid var(--ring); border-radius: 8px; padding: 8px 10px; background: var(--surface); font-size: 13px; display: flex; justify-content: space-between; gap: 8px; }
+.facts .box { background: var(--accent-wash); border-color: var(--s1); font-weight: 600; }
+/* equality chain */
+.chain { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; }
+.chain .card { flex: 1 1 200px; }
+.chain .eq { align-self: center; font-size: 24px; color: var(--muted); }
+.big { font-size: 22px; font-weight: 650; font-variant-numeric: tabular-nums; }
+/* line chart */
+.chart { position: relative; }
+.chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+.tip { position: fixed; pointer-events: none; background: var(--card); color: var(--ink); border: 1px solid var(--ring);
+       border-radius: 8px; padding: 6px 10px; font-size: 13px; box-shadow: 0 4px 16px rgba(0,0,0,.12); display: none; z-index: 10; }
+.tip strong { display: block; font-size: 15px; }
+details { margin-top: 10px; font-size: 13px; color: var(--ink-2); }
+summary { cursor: pointer; }
+footer { margin-top: 48px; color: var(--muted); font-size: 12.5px; border-top: 1px solid var(--grid); padding-top: 12px; }
+</style>
+</head>
+<body class="lang-both">
+<div class="wrap">
+  <header>
+    <div>
+      <h1><span class="ka">მონაცემების გზა</span><span class="en">Data Journey</span></h1>
+      <p class="sub"><span class="ka">AutoSphere Analytics — ნედლი CSV ფაილიდან ბიზნეს პასუხამდე.</span>
+        <span class="en sec">AutoSphere Analytics — from raw CSV files to business answers.</span></p>
+      <div class="meta" id="meta"></div>
+    </div>
+    <div class="toggle" role="group" aria-label="Language">
+      <button data-lang="both" aria-pressed="true">ქართ + EN</button>
+      <button data-lang="ka" aria-pressed="false">ქართული</button>
+      <button data-lang="en" aria-pressed="false">English</button>
+    </div>
+  </header>
+
+  <div class="grid tiles" id="tiles"></div>
+
+  <section>
+    <h2><span class="ka">1. წყარო: 11 ცხრილი</span><span class="en">1. Source: 11 tables</span></h2>
+    <p class="lead"><span class="ka">ყოველ ცხრილში: შემოვიდა = გასუფთავდა + კარანტინში. არცერთი ჩანაწერი არ იკარგება უხმოდ.</span>
+      <span class="en sec">In every table: raw = clean + quarantined. No row disappears silently.</span></p>
+    <div class="card">
+      <div class="legend"><span><i style="background:var(--s1)"></i><span class="ka">გასუფთავდა</span><span class="en"> clean</span></span>
+        <span><i style="background:var(--s2)"></i><span class="ka">კარანტინში</span><span class="en"> quarantined</span></span></div>
+      <div style="overflow-x:auto"><table id="lineage"></table></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="ka">2. ადრე → შემდეგ</span><span class="en">2. Before → after</span></h2>
+    <p class="lead"><span class="ka">ზემოთ: ნამდვილი მნიშვნელობები ნედლი ფაილიდან. ქვემოთ: იგივე ჩანაწერი PostgreSQL-ში დამუშავების შემდეგ.</span>
+      <span class="en sec">Top: real values from the raw file. Bottom: the same records in PostgreSQL after processing.</span></p>
+    <div class="grid three" id="examples"></div>
+  </section>
+
+  <section>
+    <h2><span class="ka">3. რატომ მოხვდა ჩანაწერები კარანტინში</span><span class="en">3. Why rows were quarantined</span></h2>
+    <p class="lead"><span class="ka">ყველა უარყოფილ ჩანაწერს აქვს მიზეზი და ორიგინალი შინაარსი (<span class="code">audit.rejected_rows</span>). 12 ყველაზე ხშირი მიზეზი:</span>
+      <span class="en sec">Every rejected row keeps its reason and original content (<span class="code">audit.rejected_rows</span>). Top 12 reasons:</span></p>
+    <div class="card"><div class="hbars" id="reasons"></div></div>
+  </section>
+
+  <section>
+    <h2><span class="ka">4. დამუშავება და ხარისხის კონტროლი</span><span class="en">4. Processing and quality gates</span></h2>
+    <p class="lead"><span class="ka">ერთი ბრძანება (<span class="code">run_pipeline.py</span>) — 9 ნაბიჯი. მონიშნულ ნაბიჯებზე ხარისხის შემოწმებაა; კრიტიკული შეცდომისას ყველაფერი უკან ბრუნდება და დაშბორდები წინა სწორ მონაცემებს ინარჩუნებენ.</span>
+      <span class="en sec">One command, 9 steps. Highlighted steps are quality gates; a critical failure rolls everything back and dashboards keep the last good data.</span></p>
+    <div class="steps" id="steps"></div>
+    <div class="grid three" id="gates" style="margin-top:12px"></div>
+  </section>
+
+  <section>
+    <h2><span class="ka">5. Data Warehouse: star schema</span><span class="en">5. Data warehouse: star schema</span></h2>
+    <p class="lead"><span class="ka">ცენტრში ფაქტები (მოვლენები), გარშემო განზომილებები (ვინ, რა, სად, როდის). ერთი ფილიალის ფილტრი ერთდროულად მოქმედებს გაყიდვებზე, სერვისზე და კომენტარებზე.</span>
+      <span class="en sec">Facts (events) in the centre, dimensions (who, what, where, when) around them. One branch filter applies to sales, service and feedback at once.</span></p>
+    <div class="card star" id="star"></div>
+  </section>
+
+  <section>
+    <h2><span class="ka">6. ერთი ციფრი ყველგან</span><span class="en">6. One number everywhere</span></h2>
+    <p class="lead"><span class="ka">შემოსავალი ზუსტად ერთნაირია warehouse-ში, KPI ხედებში და Power BI-ის ფენაში — ეს ყოველ გაშვებაზე მოწმდება.</span>
+      <span class="en sec">Revenue is identical in the warehouse, the KPI views and the Power BI layer — checked on every run.</span></p>
+    <div class="chain" id="chain"></div>
+  </section>
+
+  <section>
+    <h2><span class="ka">7. ბიზნეს პასუხები</span><span class="en">7. Business answers</span></h2>
+    <p class="lead"><span class="ka">რას პოულობს სისტემა მონაცემებში.</span><span class="en sec">What the platform finds in the data.</span></p>
+    <div class="grid three" id="findings"></div>
+    <div class="grid two" style="margin-top:12px">
+      <div class="card">
+        <h3 style="margin:0 0 2px;font-size:15px"><span class="ka">ბათუმი: მომსახურების საშუალო ხანგრძლივობა (მედიანა, სთ)</span>
+          <span class="en sec">Batumi: median maintenance turnaround (hours)</span></h3>
+        <div class="chart" id="line"></div>
+        <details><summary><span class="ka">ცხრილი</span><span class="en"> Table</span></summary><table id="lineTable"></table></details>
+      </div>
+      <div class="card">
+        <h3 style="margin:0 0 8px;font-size:15px"><span class="ka">AI: უჩვეულო საჩივრები ბოლო კვარტალში</span>
+          <span class="en sec">AI: unusual complaints in the latest quarter</span></h3>
+        <table id="anomalies"></table>
+        <p class="muted" style="font-size:12.5px;margin:10px 0 0" id="aiNote"></p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span class="ka">ყველა ციფრი გამოთვლილია ბაზიდან და ნედლი ფაილებიდან (<span class="code">scripts/generate_data_journey.py</span>). მონაცემები სინთეტიკურია, კომპანია — გამოგონილი.</span>
+    <span class="en sec">Every number is queried from the database and the raw files. Synthetic data, fictional company.</span>
+  </footer>
+</div>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script>
+const DATA = /*__DATA__*/null;
+
+/* ---------- helpers (all text goes in via textContent) ---------- */
+const $ = (id) => document.getElementById(id);
+const fmt = (n, d = 0) => n == null ? "–" : Number(n).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+function el(tag, attrs = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") e.className = v; else if (k === "style") e.style.cssText = v; else e.setAttribute(k, v);
+  }
+  for (const k of kids) if (k != null) e.append(k instanceof Node ? k : document.createTextNode(String(k)));
+  return e;
+}
+const ka = (t) => el("span", { class: "ka" }, t);
+const en = (t, sec = false) => el("span", { class: sec ? "en sec" : "en" }, t);
+const both = (k, e) => [ka(k), en(e)];
+
+const TABLE_KA = { branches: "ფილიალები", product_categories: "კატეგორიები", products: "პროდუქტები",
+  employees: "თანამშრომლები", customers: "მომხმარებლები", vehicles: "ავტომობილები", sales: "გაყიდვები",
+  service_orders: "სერვისის შეკვეთები", service_items: "სერვისის პოზიციები", payments: "გადახდები",
+  customer_feedback: "კომენტარები" };
+const REASON_KA = [
+  [/^exact_duplicate/, "ზუსტი დუბლიკატი"], [/^duplicate_business_key/, "დუბლირებული ID"],
+  [/^duplicate_vin/, "დუბლირებული VIN"], [/^orphan_/, "არარსებულ ჩანაწერზე მითითება"],
+  [/^missing_/, "სავალდებულო ველი ცარიელია"], [/^negative_quantity/, "უარყოფითი რაოდენობა"],
+  [/^zero_quantity/, "ნულოვანი რაოდენობა"], [/^negative_amount/, "უარყოფითი თანხა"],
+  [/^zero_amount/, "ნულოვანი თანხა"], [/^non_numeric/, "თანხა რიცხვი არ არის"],
+  [/^future_date/, "მომავლის თარიღი"], [/^invalid_date/, "არასწორი თარიღი"],
+  [/^invalid_currency/, "არასწორი ვალუტა"], [/^discount_exceeds/, "ფასდაკლება ღირებულებაზე მეტია"],
+  [/^closed_before_opened/, "დაიხურა გახსნამდე"], [/^completed_without_close/, "დასრულებულია დახურვის თარიღის გარეშე"],
+  [/^part_without_product/, "ნაწილი პროდუქტის გარეშე"], [/^empty_feedback/, "ცარიელი კომენტარი"],
+];
+const reasonKa = (r) => (REASON_KA.find(([re]) => re.test(r)) || [null, r])[1];
+
+/* ---------- tooltip ---------- */
+const tip = $("tip");
+function showTip(evt, value, label) {
+  tip.replaceChildren(el("strong", {}, value), document.createTextNode(label));
+  tip.style.display = "block";
+  const x = Math.min(evt.clientX + 14, window.innerWidth - tip.offsetWidth - 8);
+  tip.style.left = x + "px"; tip.style.top = (evt.clientY + 14) + "px";
+}
+const hideTip = () => { tip.style.display = "none"; };
+function hover(node, value, label) {
+  node.addEventListener("pointermove", (e) => showTip(e, value, label));
+  node.addEventListener("pointerleave", hideTip);
+}
+
+/* ---------- language toggle ---------- */
+function setLang(lang) {
+  document.body.className = "lang-" + lang;
+  document.documentElement.lang = lang === "en" ? "en" : "ka";
+  document.querySelectorAll(".toggle button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
+  try { localStorage.setItem("journey-lang", lang); } catch (e) { /* storage unavailable */ }
+}
+document.querySelectorAll(".toggle button").forEach((b) => b.addEventListener("click", () => setLang(b.dataset.lang)));
+try { const saved = localStorage.getItem("journey-lang"); if (saved) setLang(saved); } catch (e) { /* default */ }
+
+/* ---------- render ---------- */
+function render(d) {
+  const totals = d.lineage.reduce((a, r) => ({ raw: a.raw + r.raw, clean: a.clean + r.clean, q: a.q + r.quarantined }),
+                                  { raw: 0, clean: 0, q: 0 });
+  const lost = totals.raw - totals.clean - totals.q;
+  const checks = d.gates.reduce((a, g) => a + g.checks, 0);
+  const critical = d.gates.reduce((a, g) => a + g.critical, 0);
+
+  $("meta").append(ka(`pipeline-ის გაშვება #${d.run_id} · მონაცემები ${d.ytd.ytd_to}-მდე`),
+                   en(` · pipeline run #${d.run_id} · data through ${d.ytd.ytd_to}`));
+
+  const tile = (k, e, value, note, cls = "") =>
+    el("div", { class: "card tile " + cls }, el("div", { class: "label" }, ka(k), en(e)), el("div", { class: "value" }, value),
+       note ? el("div", { class: "note" }, note) : null);
+  $("tiles").append(
+    tile("შემოვიდა", "Raw rows", fmt(totals.raw), "11 CSV"),
+    tile("გასუფთავდა", "Clean rows", fmt(totals.clean), (100 * totals.clean / totals.raw).toFixed(1) + "%"),
+    tile("კარანტინში", "Quarantined", fmt(totals.q), (100 * totals.q / totals.raw).toFixed(1) + "%"),
+    tile("დაიკარგა", "Lost", fmt(lost), lost === 0 ? "✓ raw = clean + quarantined" : "✗", lost === 0 ? "good" : ""),
+    tile("ხარისხის შემოწმება", "Quality checks", fmt(checks), `${critical} critical`, critical === 0 ? "good" : ""));
+
+  /* 1. lineage */
+  const lt = $("lineage");
+  lt.append(el("tr", {}, el("th", {}, ...both("ცხრილი", "Table")), el("th", { class: "num" }, ...both("შემოვიდა", "Raw")),
+                el("th", { class: "num" }, ...both("სუფთა", "Clean")), el("th", { class: "num" }, ...both("კარანტინი", "Quarantined")),
+                el("th", {}, ...both("წილი", "Share")), el("th", {}, "✓")));
+  for (const r of d.lineage) {
+    const qPct = r.raw ? 100 * r.quarantined / r.raw : 0;
+    const bar = el("div", { class: "bar100" },
+      el("span", { class: "c hit", style: `flex:${r.clean}` }), r.quarantined ? el("span", { class: "q hit", style: `flex:${r.quarantined}` }) : null);
+    hover(bar.children[0], fmt(r.clean), `${r.table}: clean (${(100 - qPct).toFixed(1)}%)`);
+    if (r.quarantined) hover(bar.children[1], fmt(r.quarantined), `${r.table}: quarantined (${qPct.toFixed(1)}%)`);
+    const ok = r.raw === r.clean + r.quarantined;
+    lt.append(el("tr", {},
+      el("td", {}, ka(TABLE_KA[r.table] || r.table), el("span", { class: "en code" }, " " + r.table)),
+      el("td", { class: "num" }, fmt(r.raw)), el("td", { class: "num" }, fmt(r.clean)),
+      el("td", { class: "num" }, fmt(r.quarantined)), el("td", {}, bar),
+      el("td", {}, el("span", { class: "status " + (ok ? "good" : "bad") }, ok ? "✓" : "✗"))));
+  }
+
+  /* 2. before -> after */
+  const ex = d.examples;
+  const baCard = (titleKa, titleEn, before, after) => el("div", { class: "card ba" },
+    el("h3", {}, ka(titleKa), en(titleEn, true)),
+    el("div", { class: "before" }, el("div", { class: "tag" }, ...both("ნედლი ფაილი", " RAW FILE")), ...before),
+    el("div", { class: "arrow" }, "↓"),
+    el("div", { class: "after" }, el("div", { class: "tag" }, ...both("PostgreSQL-ში", " IN POSTGRESQL")), ...after));
+  const rawTotal = ex.city_variants.reduce((a, v) => a + v.n, 0);
+  $("examples").append(
+    baCard("ერთი ქალაქი, 7 დაწერილობა", "One city, many spellings",
+      ex.city_variants.map((v) => el("span", { class: "chip" }, v.value, el("b", {}, fmt(v.n)))),
+      [el("span", { class: "chip" }, "Tbilisi", el("b", {}, fmt(ex.city_after))),
+       el("div", { class: "muted", style: "font-size:12.5px;margin-top:6px" },
+         ka(`${fmt(rawTotal)} ნედლი ჩანაწერი → ერთი ფორმა; სხვაობა = მოხსნილი დუბლიკატები.`),
+         en(`${fmt(rawTotal)} raw rows → one spelling; the difference is removed duplicates.`, true))]),
+    baCard("თარიღი სამ ფორმატში", "Dates in mixed formats",
+      ex.dates.map((r) => el("div", { class: "code" }, `${r.id}  ${r.before}`)),
+      ex.dates.map((r) => el("div", { class: "code" }, `${r.id}  ${r.after ?? "→ quarantined"}`))),
+    baCard("უარყოფითი რაოდენობა", "Negative quantity",
+      [el("div", { class: "code" }, `${ex.negative.id}  quantity = ${ex.negative.quantity}`)],
+      [el("div", {}, el("span", { class: "status bad" }, "⊘ "), ka("არ ჩაიტვირთა — კარანტინშია."),
+          en("Not loaded — quarantined.", true)),
+       el("div", {}, ka("მიზეზი: "), el("span", { class: "en dup" }, "reason: "), el("span", { class: "code" }, ex.negative.reason ?? "–")),
+       el("div", { class: "muted", style: "font-size:12.5px" }, `staging.sales: ${ex.negative.in_staging} rows`),
+       ex.negative.raw_record ? el("div", { class: "raw code" }, ex.negative.raw_record.slice(0, 160) + "…") : null]));
+
+  /* 3. reasons */
+  const max = Math.max(...d.reasons.map((r) => r.n));
+  for (const r of d.reasons) {
+    const label = el("div", { class: "lbl", title: `${r.reason} (${r.source_table})` },
+      ka(`${reasonKa(r.reason)} · ${TABLE_KA[r.source_table] || r.source_table}`),
+      el("span", { class: "en code" }, ` ${r.reason} · ${r.source_table}`));
+    const pct = 88 * r.n / max;   // leave room for the value label
+    const track = el("div", { class: "track hit" }, el("div", { class: "fill", style: `width:${pct}%` }),
+                     el("span", { class: "val", style: `left:${pct}%` }, fmt(r.n)));
+    hover(track, fmt(r.n) + " rows", `${r.reason} — ${r.source_table}`);
+    $("reasons").append(label, track);
+  }
+
+  /* 4. steps + gates */
+  const steps = [
+    ["ამოღება", "Extract", 0], ["გასუფთავება", "Clean", 0], ["წყაროს შემოწმება", "Source gate", 1],
+    ["ფაილები", "Processed files", 0], ["staging + შემოწმება", "Staging + checks", 1], ["AI კომენტარები", "AI enrichment", 0],
+    ["star schema + შემოწმება", "Warehouse + checks", 1], ["KPI + Power BI ფენა", "KPI + Power BI layer", 1],
+    ["AI insight-ები", "AI insights", 0]];
+  for (const [k, e, g] of steps) $("steps").append(el("div", { class: "step" + (g ? " gate" : "") }, ka(k), en(e, true)));
+  const STAGE = { source: ["წყაროს ფაილები", "Source files"], post_load: ["ჩატვირთვის შემდეგ (staging, warehouse, KPI, Power BI)", "After load (staging, warehouse, KPI, Power BI)"],
+                  analytics: ["ანალიტიკა", "Analytics"] };
+  for (const g of d.gates) {
+    const [k, e] = STAGE[g.stage] || [g.stage, g.stage];
+    $("gates").append(el("div", { class: "card" },
+      el("div", { class: "label", style: "font-size:13px;color:var(--ink-2)" }, ka(k), en(e, true)),
+      el("div", { class: "big" }, fmt(g.checks), el("span", { class: "muted", style: "font-size:14px;font-weight:400" }, " checks")),
+      el("div", {}, el("span", { class: "status " + (g.critical ? "bad" : "good") }, g.critical ? "✗ " : "✓ ", `${g.critical} critical`),
+         el("span", { class: "muted" }, ` · ${g.warnings} warnings`))));
+  }
+
+  /* 5. star */
+  const box = (name, n) => el("div", { class: "box" }, el("span", { class: "code" }, name), el("span", { class: "muted" }, fmt(n)));
+  const s = d.star;
+  $("star").append(
+    el("div", { class: "dims" }, box("dim_date", s.dim_date), box("dim_branch", s.dim_branch), box("dim_customer", s.dim_customer)),
+    el("div", { class: "facts" }, ...["fact_sales", "fact_service_orders", "fact_service_items", "fact_payments", "fact_customer_feedback"].map((f) => box(f, s[f]))),
+    el("div", { class: "dims" }, box("dim_product", s.dim_product), box("dim_category", s.dim_category),
+       box("dim_employee", s.dim_employee), box("dim_vehicle", s.dim_vehicle)));
+
+  /* 6. chain */
+  const link = (k, e, v) => el("div", { class: "card" }, el("div", { class: "label", style: "font-size:13px;color:var(--ink-2)" }, ka(k), en(e, true)),
+                                el("div", { class: "big" }, fmt(v, 2) + " ₾"));
+  const same = d.revenue.warehouse === d.revenue.kpi_views && d.revenue.kpi_views === d.revenue.power_bi;
+  $("chain").append(link("Warehouse (dw)", "Warehouse", d.revenue.warehouse), el("div", { class: "eq" }, same ? "=" : "≠"),
+                    link("KPI ხედები", "KPI views", d.revenue.kpi_views), el("div", { class: "eq" }, same ? "=" : "≠"),
+                    link("Power BI ფენა", "Power BI layer", d.revenue.power_bi));
+
+  /* 7. findings */
+  const finding = (k, e, value, nk, ne, cls = "") => el("div", { class: "card tile " + cls },
+    el("div", { class: "label" }, ka(k), en(e)), el("div", { class: "value" }, value), el("div", { class: "note" }, ka(nk), en(ne, true)));
+  const y = d.ytd;
+  $("findings").append(
+    finding(`შემოსავლის ზრდა (YTD ${y.current_year})`, "Revenue growth (YTD)", (y.revenue_yoy_pct > 0 ? "+" : "") + fmt(y.revenue_yoy_pct, 1) + "%",
+      `შედარებადი პერიოდი. მთელი წლის გულუბრყვილო შედარება აჩვენებდა ${fmt(d.naive_full_year_pct, 1)}%-ს.`,
+      `Comparable window. A naive full-year comparison would show ${fmt(d.naive_full_year_pct, 1)}%.`, "good"));
+  if (d.kutaisi) {
+    const ordPct = 100 * (d.kutaisi.ytd_orders / d.kutaisi.prior_ytd_orders - 1);
+    $("findings").append(finding("კუთაისი", "Kutaisi", fmt(d.kutaisi.ytd_yoy_pct, 1) + "%",
+      `ერთადერთი კლებადი ფილიალი: შეკვეთები ${fmt(ordPct, 1)}% — მომხმარებელი ნაკლებად მოდის.`,
+      `The only declining branch: orders ${fmt(ordPct, 1)}% — fewer customers come in.`));
+  }
+  const t = d.turnaround;
+  if (t.length) {
+    const last = t[t.length - 1];
+    const sameQuarterLastYear = `${Number(last.year_quarter.slice(0, 4)) - 1}${last.year_quarter.slice(4)}`;
+    const first = t.find((p) => p.year_quarter === sameQuarterLastYear) || t[0];
+    $("findings").append(finding("ბათუმის სერვისი", "Batumi service", `${fmt(first.hours, 1)} → ${fmt(last.hours, 1)} სთ`,
+      `მომსახურების მედიანური დრო (${first.year_quarter} → ${last.year_quarter}); ლოდინზე საჩივრებიც გაიზარდა.`,
+      `Median turnaround (${first.year_quarter} → ${last.year_quarter}); waiting-time complaints rose too.`));
+    lineChart($("line"), t);
+    const tt = $("lineTable");
+    tt.append(el("tr", {}, el("th", {}, ...both("კვარტალი", "Quarter")), el("th", { class: "num" }, ...both("საათი", "Hours"))));
+    for (const p of t) tt.append(el("tr", {}, el("td", {}, p.year_quarter), el("td", { class: "num" }, fmt(p.hours, 1))));
+  }
+
+  const at = $("anomalies");
+  at.append(el("tr", {}, el("th", {}, ...both("ფილიალი", "Branch")), el("th", {}, ...both("თემა", "Topic")),
+                el("th", { class: "num" }, ...both("საჩივარი", "Complaints")), el("th", { class: "num" }, ...both("ნორმასთან", "vs baseline"))));
+  for (const a of d.ai.anomalies) at.append(el("tr", {}, el("td", {}, a.branch_name.replace("AutoSphere ", "")),
+    el("td", { class: "code" }, a.topic), el("td", { class: "num" }, fmt(a.negative_count)), el("td", { class: "num" }, fmt(a.ratio_to_baseline, 1) + "×")));
+  const methods = d.ai.methods.map((m) => `${m.method}: ${fmt(m.labels)}`).join(", ");
+  $("aiNote").append(ka(`${fmt(d.ai.labelled)} / ${fmt(d.ai.total)} კომენტარი დალეიბლებულია AI-ით (${methods}). ანომალია = ≥ 2× წინა 4 კვარტალის საშუალოზე.`),
+                     en(`${fmt(d.ai.labelled)} / ${fmt(d.ai.total)} comments labelled by AI (${methods}). Anomaly = ≥ 2× the previous 4-quarter average.`, true));
+}
+
+/* ---------- single-series line chart with crosshair tooltip ---------- */
+function lineChart(host, pts) {
+  const W = 520, H = 220, m = { l: 34, r: 40, t: 14, b: 28 };
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", "Batumi median maintenance turnaround by quarter");
+  const mk = (tag, a) => { const n = document.createElementNS(NS, tag); for (const k in a) n.setAttribute(k, a[k]); return n; };
+  const ymax = Math.ceil(Math.max(...pts.map((p) => p.hours)) + 0.5);
+  const x = (i) => m.l + i * (W - m.l - m.r) / Math.max(pts.length - 1, 1);
+  const yv = (v) => H - m.b - v / ymax * (H - m.t - m.b);
+  for (let v = 0; v <= ymax; v += 2) {
+    svg.append(mk("line", { x1: m.l, x2: W - m.r, y1: yv(v), y2: yv(v), stroke: v ? "var(--grid)" : "var(--axis)", "stroke-width": 1 }));
+    const tl = mk("text", { x: m.l - 6, y: yv(v) + 4, "text-anchor": "end", "font-size": 11, fill: "var(--muted)" });
+    tl.textContent = v; svg.append(tl);
+  }
+  pts.forEach((p, i) => {
+    if (p.year_quarter.endsWith("Q1")) {
+      const tx = mk("text", { x: x(i), y: H - 8, "text-anchor": "start", "font-size": 11, fill: "var(--muted)" });
+      tx.textContent = p.year_quarter.slice(0, 4); svg.append(tx);
+    }
+  });
+  svg.append(mk("path", { d: pts.map((p, i) => `${i ? "L" : "M"}${x(i)},${yv(p.hours)}`).join(""), fill: "none",
+                          stroke: "var(--s1)", "stroke-width": 2, "stroke-linejoin": "round" }));
+  pts.forEach((p, i) => svg.append(mk("circle", { cx: x(i), cy: yv(p.hours), r: 4, fill: "var(--s1)", stroke: "var(--card)", "stroke-width": 2 })));
+  const last = pts[pts.length - 1];
+  const lbl = mk("text", { x: x(pts.length - 1) + 8, y: yv(last.hours) + 4, "font-size": 12, "font-weight": 600, fill: "var(--ink)" });
+  lbl.textContent = fmt(last.hours, 1) + " h"; svg.append(lbl);
+  const cross = mk("line", { y1: m.t, y2: H - m.b, stroke: "var(--axis)", "stroke-width": 1, visibility: "hidden" });
+  svg.append(cross);
+  const overlay = mk("rect", { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: "transparent" });
+  overlay.addEventListener("pointermove", (e) => {
+    const r = svg.getBoundingClientRect();
+    const px = (e.clientX - r.left) * W / r.width;
+    const i = Math.max(0, Math.min(pts.length - 1, Math.round((px - m.l) / ((W - m.l - m.r) / Math.max(pts.length - 1, 1)))));
+    cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i)); cross.setAttribute("visibility", "visible");
+    showTip(e, fmt(pts[i].hours, 1) + " h", pts[i].year_quarter);
+  });
+  overlay.addEventListener("pointerleave", () => { cross.setAttribute("visibility", "hidden"); hideTip(); });
+  svg.append(overlay);
+  host.append(svg);
+}
+
+if (DATA) render(DATA);
+</script>
+</body>
+</html>

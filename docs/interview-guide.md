@@ -289,7 +289,7 @@ Next steps, in order:
 2. **Stable contract.** The `bi` layer is a contract: warehouse tables can change without breaking the report.
 3. **KPI dictionary.** A definition change ("revenue should include returns") is made once in SQL, documented in the dictionary, and reconciled automatically everywhere.
 4. **Traceability.** Every requirement links question → KPI → SQL → page → test (`docs/business-requirements.md`), so I can see what a change touches.
-5. **Safety net.** 236 tests and the end-to-end check catch regressions.
+5. **Safety net.** 238 tests and the end-to-end check catch regressions.
 
 ### Q26. How would you automate reporting?
 **In this project.** `scripts/scheduled_run.py` runs daily via Windows Task Scheduler, cron

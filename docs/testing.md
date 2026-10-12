@@ -9,8 +9,8 @@ Three levels of evidence that the platform works:
 | **End-to-end acceptance** | `python scripts/validate_end_to_end.py` | One run of the whole platform, followed through every layer, with a PASS/FAIL checklist and evidence | ~3 min (`--skip-pipeline`: ~30 s) |
 
 ```powershell
-pytest -m "not db"                       # offline: 166 passed, DB tests deselected
-pytest                                   # full: 236 passed (needs DATABASE_URL)
+pytest -m "not db"                       # offline: 167 passed, DB tests deselected
+pytest                                   # full: 238 passed (needs DATABASE_URL)
 pytest --cov=common --cov=datagen --cov=etl --cov=ai --cov=reporting   # with coverage (89%)
 python scripts/validate_end_to_end.py    # 16/16 checks, writes reports/e2e_validation.md
 ```
@@ -26,9 +26,9 @@ pipeline name `autosphere_tests`, so reports and dashboards ignore it.
                  ┌─────────────────────────┐
                  │ end-to-end (16 checks)  │  validate_end_to_end.py · test_end_to_end.py
               ┌──┴─────────────────────────┴──┐
-              │ integration (70 DB tests)     │  SQL against PostgreSQL, always rolled back
+              │ integration (71 DB tests)     │  SQL against PostgreSQL, always rolled back
          ┌────┴───────────────────────────────┴────┐
-         │ unit / component (166 offline tests)    │  pure Python, fake Gemini, no network
+         │ unit / component (167 offline tests)    │  pure Python, fake Gemini, no network
          └─────────────────────────────────────────┘
 ```
 
@@ -47,6 +47,7 @@ pipeline name `autosphere_tests`, so reports and dashboards ignore it.
 | `test_powerbi.py` | 16 | Every DAX measure reference is defined, every `Table[column]` exists in the `bi` views, relationships valid, reference values = SQL KPIs |
 | `test_reporting.py` | 20 | Alert rules, HTML escaping, failure banner, lock, retry only on connection errors, exit codes, report from live data |
 | `test_end_to_end.py` | 2 | The full acceptance checklist passes on the current database |
+| `test_journey.py` | 2 | Data Journey page: bilingual, offline, injection-safe; its numbers reconcile with the data |
 
 ## Coverage of the required test areas
 

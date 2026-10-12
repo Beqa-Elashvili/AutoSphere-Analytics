@@ -28,7 +28,7 @@
 | NFR-3 | Daily refresh without manual work | `scripts/scheduled_run.py` + Task Scheduler / cron / GitHub Actions |
 | NFR-4 | Customer contact data is not exposed in reports | `bi` views exclude e-mail, phone, VIN; checked every run |
 | NFR-5 | Works without paid services; AI cost is controlled | Rule-based fallback, label cache, cost budget, local mode by default |
-| NFR-6 | Reproducible | Deterministic generator (seed), idempotent pipeline, 236 tests, end-to-end check |
+| NFR-6 | Reproducible | Deterministic generator (seed), idempotent pipeline, 238 tests, end-to-end check |
 
 ## How a requirement becomes a dashboard
 

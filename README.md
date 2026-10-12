@@ -8,7 +8,7 @@ feedback in Georgian and English.
 > **Portfolio project.** The company is fictional and all data is synthetic, generated
 > locally with a fixed seed. No real company, customer or employee data is used.
 
-![tests](https://img.shields.io/badge/tests-236%20passing-brightgreen) ![coverage](https://img.shields.io/badge/coverage-89%25-green) ![e2e](https://img.shields.io/badge/end--to--end-16%2F16-brightgreen)
+![tests](https://img.shields.io/badge/tests-238%20passing-brightgreen) ![coverage](https://img.shields.io/badge/coverage-89%25-green) ![e2e](https://img.shields.io/badge/end--to--end-16%2F16-brightgreen)
 
 **Contents:** [Business problem](#business-problem) · [Architecture](#architecture) · [Stack](#technology-stack) ·
 [Data](#data-sources) · [ETL](#etl--elt) · [Warehouse](#data-warehouse-and-star-schema) · [Data quality](#data-quality) ·
@@ -78,7 +78,7 @@ the last good data. Details: [docs/architecture.md](docs/architecture.md).
 | BI | Power BI, DAX | Semantic model, time intelligence, sharing |
 | AI / NLP | Google Gemini (structured output), deterministic rule-based fallback | Bilingual understanding; works without a key |
 | Automation | Windows Task Scheduler, cron, GitHub Actions | Any of the three runs the same job |
-| Testing | pytest, pytest-cov, GitHub Actions CI | 236 tests, 89% coverage |
+| Testing | pytest, pytest-cov, GitHub Actions CI | 238 tests, 89% coverage |
 
 ## Data sources
 
@@ -221,6 +221,7 @@ python scripts/check_environment.py    # verifies configuration and connection
 python scripts/run_pipeline.py         # raw -> staging -> warehouse -> KPIs -> Power BI layer (~2.5 min)
 python scripts/run_analytics.py --all  # the 10 business questions
 python scripts/generate_report.py      # management report -> reports/management/latest.html
+python scripts/generate_data_journey.py  # visual page: raw CSV -> business answer (ka + en) -> reports/data_journey.html
 ```
 
 <details>
@@ -244,7 +245,7 @@ python scripts/run_pipeline.py --ai-provider gemini   # PAID: first run ~0.9M to
 ## How to run the tests
 
 ```powershell
-pytest -m "not db"                       # 166 offline tests, ~15 s, no database needed (also runs in CI)
+pytest -m "not db"                       # 167 offline tests, ~15 s, no database needed (also runs in CI)
 pytest                                   # full suite incl. database tests, ~3 min
 python scripts/validate_end_to_end.py    # whole platform, 16 PASS/FAIL checks with evidence
 ```
@@ -327,7 +328,7 @@ docs/        technical and business documentation
 | Testing and validation | [docs/testing.md](docs/testing.md) |
 | Requirements mapping (BI & AI Developer) | [docs/requirements-mapping.md](docs/requirements-mapping.md) |
 | Interview guide (30 Q&A) | [docs/interview-guide.md](docs/interview-guide.md) |
-| Demo script (15 min) | [docs/demo-script.md](docs/demo-script.md) |
+| Demo script (15 min) and visual Data Journey page | [docs/demo-script.md](docs/demo-script.md), `python scripts/generate_data_journey.py` |
 
 ## Security
 
